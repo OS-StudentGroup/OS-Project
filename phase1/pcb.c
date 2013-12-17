@@ -4,6 +4,12 @@
 
 static pcb_t *freePcb_tp;
 
+// TODO Beregond
+// TODO Legolas
+// TODO Saruman
+// TODO Aragorn
+
+// TODO Beregond
 /* This method is used to initialize a variable to be tail pointer to a
 process queue.
 Return a pointer to the tail of an empty process queue; i.e. NULL. */
@@ -11,12 +17,14 @@ pcb_t *mkEmptyProcQ() {
 	return(NULL);
 }
 
+// TODO Beregond
 /* Return TRUE if the queue whose tail is pointed to by tp is empty.
 Return FALSE otherwise. */
 int emptyProcQ (pcb_t *tp){
 	return (tp == NULL); 
 }
 
+// TODO Beregond
 /* Insert the ProcBlk pointed to by p into the process queue whose
 tail-pointer is pointed to by tp. Note the double indirection through
 tp to allow for the possible updating of the tail pointer as well. */
@@ -44,6 +52,7 @@ void insertProcQ(pcb_t **tp, pcb_t *p){
 	}
 }
 
+// TODO Beregond
 /* Return a pointer to the ﬁrst ProcBlk from the process queue whose
 tail is pointed to by tp. Do not remove this ProcBlkfrom the process
 queue. Return NULL if the process queue is empty. */
@@ -55,6 +64,7 @@ pcb_t *headProcQ(pcb_t *tp){
 	return(head);
 }
 
+// TODO Beregond
 /* removeProcQ takes the pointer to the tail pointer and removes the 
 ProcBlk associated with it, then reassigns pointers around the removed ProcBlk*/
 pcb_t *removeProcQ(pcb_t **tp){
@@ -76,6 +86,7 @@ pcb_t *removeProcQ(pcb_t **tp){
 	}
 }
 
+// TODO Beregond
 /* Remove the ProcBlk pointed to by p from the process queue whose
 tail-pointer is pointed to by tp. Update the process queue’s tail
 pointer if necessary. If the desired entry is not in the indicated queue
@@ -122,10 +133,13 @@ pcb_t *outProcQ(pcb_t **tp, pcb_t *p){
 	
 }
 
+// TODO Beregond
 /* Insert the element pointed to by p onto the pcbFree list. */
 void freePcb(pcb_t *p){
 	insertProcQ(&freePcb_tp, p);
 }
+
+// TODO Legolas
 /*Initializes the pcbs*/
 void initPcbs(){
 	static pcb_t pcbs[MAXPROC];
@@ -137,7 +151,7 @@ void initPcbs(){
 	}
 }
 
-
+// TODO Legolas
 /* Return NULL if the pcbFree list is empty. Otherwise, remove
 an element from the pcbFree list, provide initial values for ALL
 of the ProcBlk’s ﬁelds (i.e. NULL and/or 0) and then return a
@@ -157,10 +171,14 @@ pcb_t *allocPcb(){
 	}
 	return(temp);
 }
+
+// TODO Legolas
 /*Set the child parent p points to to null*/
 int emptyChild (pcb_t *p){
 	return (p->p_child == NULL); 
 }
+
+// TODO Legolas
 /* Adds a child to the parent node p*/
 void insertChild (pcb_t *prnt, pcb_t *p){
 	/* Case 1: parent p has no children*/
@@ -176,6 +194,8 @@ void insertChild (pcb_t *prnt, pcb_t *p){
 		p->p_prnt = prnt;
 	}
 }
+
+// TODO Legolas
 /*Removes the child pointed to by parent node p*/
 pcb_t *removeChild (pcb_t *p){
 	/*Case 1: Parent p has no children*/
@@ -194,6 +214,8 @@ pcb_t *removeChild (pcb_t *p){
 		return(removedChild);
 	}
 }
+
+// TODO Legolas
 /*outChild removes the child pointed to by p*/
 pcb_t *outChild(pcb_t *p){
 	/*Case 1: Child p has no parent*/
