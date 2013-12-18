@@ -5,12 +5,7 @@
 static semd_t *semd_h;
 static semd_t *semdFree_h;
 
-// TODO Beregond
-// TODO Legolas
-// TODO Saruman
-// TODO Aragorn
-
-// TODO Saruman
+// TODO Alessandro
 /* Add items to active semaphore list */
 semd_t *addToASL(semd_t *newSema, int *semAdd){
 	int stop = FALSE;
@@ -39,7 +34,7 @@ semd_t *addToASL(semd_t *newSema, int *semAdd){
 		/* if semAdd is greater than the current semAdd*/
 		if(index->s_next == NULL){
 
-			index->s_next = newSema;
+			index->s_next = newSema;OS
 			stop = TRUE;
 		/* Reset the index to next. */
 		}else if(index->s_next->s_semAdd > semAdd){
@@ -57,7 +52,7 @@ semd_t *addToASL(semd_t *newSema, int *semAdd){
 	return newSema;
 }
 
-// TODO Saruman
+// TODO Alessandro
 /*Looks through list for semAdd if not found allocNewASL*/
 semd_t *findActive(int *semAdd){
 	/*Case 1: semd_h is empty*/
@@ -102,7 +97,7 @@ semd_t *findActive(int *semAdd){
 	}
 }
 
-// TODO Saruman
+// TODO Alessandro
 /*Looks through list for semAdd if not found allocNewASL*/
 semd_t *removeActive(int *semAdd){
 	semd_t *index = semd_h;
@@ -156,14 +151,14 @@ semd_t *removeActive(int *semAdd){
 		}
 	}
 
-// TODO Aragorn
+// TODO Pirata
 /* Return TRUE if the queue whose tail is pointed to by tp is empty.
 Return FALSE otherwise. */
 int emptyList(semd_t *list){
 	return (list == NULL); 
 }
 
-// TODO Aragorn
+// TODO Pirata
 /*Removes the top of the Free list*/
 semd_t *removeFree(){
 	if(emptyList(semdFree_h)){
@@ -181,7 +176,7 @@ semd_t *removeFree(){
 	}
 }
 
-// TODO Aragorn
+// TODO Pirata
 /*Add the top of the Free list*/
 void addFree(semd_t *newSema){
 	if(emptyList(semdFree_h)){
@@ -192,7 +187,7 @@ void addFree(semd_t *newSema){
 	}
 }
 
-// TODO Aragorn
+// TODO Pirata
 /* Insert the ProcBlk pointed to by p at the tail of the process queue
  associated with the semaphore whose physical address is semAdd and 
  set the semaphore address of p to semAdd. If the semaphore is currently not 
@@ -217,7 +212,7 @@ int insertBlocked(int *semAdd, pcb_t *p){
  	return FALSE;
 }
 
-// TODO Aragorn
+// TODO Pirata
 /* Search the ASL for a descriptor of this semaphore. If none is
 found, return NULL; otherwise, remove the ﬁrst (i.e. head) ProcBlk
 from the process queue of the found semaphore descriptor and return a pointer to it. If the process queue for this semaphore becomes
@@ -237,7 +232,7 @@ pcb_t *removeBlocked(int *semAdd){
 	}
 }
 
-// TODO Aragorn
+// TODO Pirata
 /* Remove the ProcBlk pointed to by p from the process queue associated with p’s semaphore (p→ p semAdd) on the ASL. If ProcBlk
 pointed to by p does not appear in the process queue associated with
 p’s semaphore, which is an error condition, return NULL; otherwise,
@@ -256,7 +251,7 @@ pcb_t *outBlocked(pcb_t *p){
 	return outProcQ(&(sema->s_procQ), p);
 }
 
-// TODO Aragorn
+// TODO Pirata
 /* Return a pointer to the ProcBlk that is at the head of the process queue associated with the semaphore semAdd. Return NULL
 if semAdd is not found on the ASL or if the process queue associated with semAdd is empty. */
 pcb_t *headBlocked(int *semAdd){
@@ -267,7 +262,7 @@ pcb_t *headBlocked(int *semAdd){
 	return(headProcQ(sema->s_procQ));
 }
 
-// TODO Aragorn
+// TODO Pirata
 /*Initialize the ASL*/
 void initASL(){
 	static semd_t semdTable[MAXPROC];
