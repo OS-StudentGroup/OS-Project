@@ -26,7 +26,7 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
 EXTERN pcb_t *removeChild(pcb_t *p);
 EXTERN pcb_t *outChild(pcb_t *p);
 
-//
+// Private global variable that points to the head of the pcbFree list
 HIDDEN pcb_t *pcbFree_h;
 
 /*
