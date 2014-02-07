@@ -1,18 +1,19 @@
-#ifndef CONSTS
-#define CONSTS
+#ifndef CONST_H
+#define CONST_H
 
-/*
- * Constants and macro definitions
-*/
+/* Kaya specific constants */
 
-// max number of concurrent processes
-#define MAXPROC 		20
+// max number of overall concurrent processes
+#define MAXPROC 	20
 
-// utility constants
-#define	TRUE			1
-#define	FALSE			0
-#define HIDDEN			static
-#define EOS				'\0'
-#define NULL 			((void *)0xFFFFFFFF)
+// number of usermode processes (not including master process and system daemons)
+#define UPROCMAX 	3
+
+// general purpose constants
+#define EXTERN 		extern
+#define HIDDEN 		static
+#define FALSE		0
+#define TRUE 		1
+#define NULL 		((void *)0)
 
 #endif

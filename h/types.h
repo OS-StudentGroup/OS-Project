@@ -1,13 +1,14 @@
-#ifndef TYPES
-#define TYPES
+#ifndef TYPES_H
+#define TYPES_H
 
 /*
  * Types definitions
  */
 
-/*
- * Process Control Block type
- */
+// temporary definition for phase1
+typedef void *state_t;
+
+// Process Control Block type
 typedef struct pcb_t
 {
 	// process queue fields
@@ -26,9 +27,7 @@ typedef struct pcb_t
 	// plus other entries to be added later
 } pcb_t;
 
-/*
- * semaphore descriptor type
-*/
+// Semaphore Descriptor type
 typedef struct semd_t
 {
 	struct semd_t *s_next; /* next element on the ASL */
