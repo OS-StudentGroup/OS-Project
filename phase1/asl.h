@@ -116,7 +116,6 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 		// the semaphore is found
 		it->s_next->s_semAdd != semAdd;
 		it = it->s_next);
-
 	return it;
 }
 
@@ -164,6 +163,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p);
 {
 	int output;
 	semd_t *sem = findSemaphore(semAdd);
+
 	// [Case 1] semAdd is active
 	if(sem->s_next)
 	{
@@ -203,6 +203,7 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 {
 	pcb_t *output;
 	semd_t *sem = findSemaphore(semAdd);
+
 	// [Case 1] semaphore is in ASL
 	if(sem)
 	{
@@ -218,6 +219,7 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 	{
 		output = NULL;
 	}
+	return output;
 }
 
 /*
@@ -231,6 +233,7 @@ EXTERN pcb_t *outBlocked(pcb_t *p);
 {
 	pcb_t *output;
 	semd_t *sem = findSemaphore(p->p_semAdd);
+
 	// [Case 1] ProcBlk is in the semaphore
 	if(sem)
 	{
@@ -254,6 +257,7 @@ EXTERN pcb_t *headBlocked(int *semAdd);
 {
 	pcb_t *output;
 	semd_t *sem = findSemaphore(semAdd);
+
 	// [Case 1] semAdd is in ASL
 	if(sem)
 	{
@@ -274,6 +278,7 @@ HIDDEN void initASL()
 {
 	static semd_t semdTable[MAXPROC];
 	int i;
+
 	for(i = 0; i < (MAXPROC-1); i++)
 	{
 		semdTable[i].s_next = &semdTable[i + 1];

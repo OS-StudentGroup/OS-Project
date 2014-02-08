@@ -20,7 +20,7 @@ typedef struct pcb_t
 		*p_prnt, 		// pointer to parent
 		*p_child, 		// pointer to first child
 		*p_sib, 		// pointer to sibling
-		*p_next_sib;	// pointer to next sibling
+		*p_prev_sib;	// pointer to next sibling
 	state_t p_s; 		// processor state
 	int *p_semAdd; 		// pointer to semaphore on which process blocked
 
@@ -30,9 +30,9 @@ typedef struct pcb_t
 // Semaphore Descriptor type
 typedef struct semd_t
 {
-	struct semd_t *s_next; // next element on the ASL
-	int *s_semAdd; // pointer to the semaphore
-	pcb_t *s_procQ; // tail pointer to a process queue
+	struct semd_t *s_next; 		// next element on the ASL
+	int *s_semAdd; 				// pointer to the semaphore
+	pcb_t *s_procQ; 			// tail pointer to a process queue
 } semd_t;
 
 #endif
