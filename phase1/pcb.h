@@ -41,14 +41,15 @@ EXTERN void freePcb(pcb_t *p)
  * Return NULL if the pcbFree list is empty. Otherwise, remove
  * an element from the pcbFree list, provide initial values for ALL
  * of the ProcBlk’s ﬁelds (i.e. NULL and/or 0) and then return a
- * pointer to the removed element. ProcBlk’s get reused, so it is
- * important that no previous value persist in a ProcBlk when it
- * gets reallocated.
+ * pointer to the removed element.
+ * ProcBlk’s get reused, so it is important that no previous value
+ * persist in a ProcBlk when it gets reallocated.
 */
 EXTERN pcb_t *allocPcb(void)
 {
 	pcb_t *pcb;
 	pcb = removeProcQ(&pcbFree_h);
+	// If pcbFree is not empty
 	if(pcb)
 	{
 		pcb->p_next =
@@ -104,10 +105,10 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 	// [Case 1] ProcQ is empty
 	if(emptyProcQ((*tp)))
 	{
-		(*tp) = p;
-		(*tp)p->p_next =
-			(*tp)->p_prev =
-			(*tp);
+		(*tp) =
+			p->p_next =
+			p->p_prev =
+			p;
 	}
 	// [Case 2] ProcQ is not empty
 	else
@@ -122,9 +123,10 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 
 /*
  * Remove the first (i.e. head) element from the process queue whose
- * tail-pointer is pointed to by tp. Return NULL if the process queue
- * was initially empty; otherwise return the pointer to the removed
- * element. Update the process queue’s tail pointer if necessary.
+ * tail-pointer is pointed to by tp.
+ * Return NULL if the process queue was initially empty; otherwise
+ * return the pointer to the removed element.
+ * Update the process queue’s tail pointer if necessary.
 */
 EXTERN pcb_t *removeProcQ(pcb_t **tp)
 {
@@ -173,23 +175,25 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	// [Case 2] ProcQ is not empty
 	else
 	{
-		// [Case 2.1] 1 ProcBlk
+		// [Case 2.1] ProcQ has 1 ProcBlk
 		if((*tp)->p_next == *tp)
 		{
+			// [Case 2.1.1] p is in the process queue
 			if(*tp == p)
 			{
 				output = *tp;
 				*tp = mkEmptyProcQ();
 			}
+			// [Case 2.1.2] p is not in the process queue
 			else
 			{
 				output = NULL;
 			}
 		}
-		// [Case 2.2] >1 ProcBlk
+		// [Case 2.2] ProcQ has >1 ProcBlk
 		else
 		{
-			// [Case 2.2.1] p is the tail
+			// [Case 2.2.1] p is in the tail
 			if(*tp == p)
 			{
 				output = *tp;
@@ -197,18 +201,24 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 				(*tp)->p_next->p_prev = (*tp)->p_prev;
 				*tp = (*tp)->p_prev;
 			}
-			// [Case 2.2.2] p is not the tail
+			// [Case 2.2.2] p is not in the tail
 			else
 			{
+				// Iterate PCB until
 				for(it = (*tp)->p_next;
-					it != *tp && it != p;
+					// the end is reached OR
+					it != *tp &&
+					// the process is found
+					it != p;
 					it = it->p_next);
+				// [Case 2.2.2.1] p is in the process queue
 				if(p == it)
 				{
 					index->p_prev->p_next = index->p_next;
 					index->p_next->p_prev = index->p_prev;
 					output = index;
 				}
+				// [Case 2.2.2.2] p is not in the process queue
 				else
 				{
 					output = NULL;
@@ -231,8 +241,11 @@ EXTERN pcb_t *headProcQ(pcb_t *tp)
 }
 
 /*
- * Return TRUE if the ProcBlk pointed to by p
- * has no children. Return FALSE otherwise.
+ * Check if a ProcBlk has no children
+ * Input:	pcb_t *p,	pointer to a ProcBlk
+ * Output:	int
+ * 						TRUE, 	if ProcBlk has no children
+ * 						FALSE, 	otherwise
 */
 EXTERN int emptyChild(pcb_t *p);
 {
@@ -254,7 +267,7 @@ EXTERN int emptyChild(pcb_t *p);
 	// [Case 2] ProcBlk is NULL
 	else
 	{
-		output = FALSE
+		output = TRUE
 	}
 	return output;
 }
