@@ -5,7 +5,7 @@
 #define ASL_H
 
 // Preprocessing directives
-#include "../phase1/pcb.h"
+#include "../h/pcb.h"
 #include "../h/const.h"
 #include "../h/types.h"
 
@@ -273,20 +273,22 @@ EXTERN pcb_t *headBlocked(int *semAdd);
 
 /*
  * Initialize the semdFree list to contain all the elements of the
- * array static semd_t semdTable[MAXPROC].
+ * array static semd_t semdTable[MAXPROC + 1].
+ * The size is increased by one because of the dummy header.
  * This method will be only called once during data structure
  * initialization.
 */
 HIDDEN void initASL()
 {
-	static semd_t semdTable[MAXPROC];
+	static semd_t semdTable[MAXPROC + 1];
 	int i;
 
-	for(i = 0; i < MAXPROC - 1; i++)
+	for(i = 0; i < MAXPROC; i++)
 	{
 		semdTable[i].s_next = &semdTable[i + 1];
 	}
-	semdTable[MAXPROC - 1].s_next = NULL;
+
+	semdTable[MAXPROC].s_next = NULL;
 	semdFree_h = &semdTable[0];
 	semd_h = NULL;
 }
