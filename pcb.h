@@ -1,14 +1,15 @@
-#ifndef PCB_H
-#define PCB_H
-
-#include "../h/const.h"
-#include "../h/types.h"
-
 /*
  * PCB handling functions
 */
+#ifndef PCB_H
+#define PCB_H
 
-// List view functions
+// Preprocessing directives
+#include "../h/const.h"
+#include "../h/types.h"
+
+// Function definitions
+// [1] List view functions
 EXTERN void freePcb(pcb_t *p);
 EXTERN pcb_t *allocPcb(void);
 EXTERN void initPcbs(void);
@@ -19,7 +20,7 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp);
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *headProcQ(pcb_t *tp);
 
-// Tree view functions
+// [2] Tree view functions
 EXTERN void initASL(void);
 EXTERN int emptyChild(pcb_t *p);
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
@@ -38,18 +39,19 @@ EXTERN void freePcb(pcb_t *p)
 }
 
 /*
- * Return NULL if the pcbFree list is empty. Otherwise, remove
- * an element from the pcbFree list, provide initial values for ALL
- * of the ProcBlk’s ﬁelds (i.e. NULL and/or 0) and then return a
- * pointer to the removed element.
+ * Return NULL if the pcbFree list is empty.
+ * Otherwise, remove an element from the pcbFree list, provide
+ * initial values for ALL of the ProcBlk’s ﬁelds (i.e. NULL and/or 0)
+ * and then return a pointer to the removed element.
  * ProcBlk’s get reused, so it is important that no previous value
  * persist in a ProcBlk when it gets reallocated.
 */
 EXTERN pcb_t *allocPcb(void)
 {
-	pcb_t *pcb;
+	pcb_t *pcb, *output;
+
 	pcb = removeProcQ(&pcbFree_h);
-	// If pcbFree is not empty
+	// [Case 1] pcbFree is not empty
 	if(pcb)
 	{
 		pcb->p_next =
@@ -59,17 +61,26 @@ EXTERN pcb_t *allocPcb(void)
 			pcb->p_sib =
 			pcb->p_prev_sib =
 			NULL;
+		output = pcb;
 	}
-	return pcb;
+	// [Case 2] pcbFree is empty
+	else
+	{
+		output = NULL;
+	}
+	return output;
 }
 
 /*
- * Initializes the PCBs
+ * Initialize the pcbFree list to contain all the elements of the
+ * static array of MAXPROC ProcBlk’s.
+ * This method will be called only once during data structure initialization.
 */
 EXTERN void initPcbs(void)
 {
-	static pcb_t pcbs[MAXPROC];
+	HIDDEN pcb_t pcbs[MAXPROC];
 	int i;
+
 	pcbFree_h = mkEmptyProcQ();
 	for(i = 0; i < MAXPROC; i++)
 	{
@@ -206,11 +217,11 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 			// [Case 2.2.2] p is not in the tail
 			else
 			{
-				// Iterate PCB until
+				// Iterate PCB queue until
 				for(it = (*tp)->p_next;
 					// the end is reached OR
 					it != *tp &&
-					// the process is found
+					// the ProcBlk is found
 					it != p;
 					it = it->p_next);
 				// [Case 2.2.2.1] p is in the process queue
@@ -335,9 +346,10 @@ EXTERN pcb_t *removeChild(pcb_t *p);
 
 /*
  * Make the ProcBlk pointed to by p no longer the child
- * of its parent. If the ProcBlk pointed to by p has no
- * parent, return NULL; otherwise, return p. Note that
- * the element pointed to by p need not be the first
+ * of its parent.
+ * If the ProcBlk pointed to by p has no parent, return NULL;
+ * otherwise, return p.
+ * Note that the element pointed to by p need not be the first
  * child of its parent.
 */
 EXTERN pcb_t *outChild(pcb_t *p);

@@ -1,10 +1,10 @@
-#ifndef ASL_H
-#define ASL_H
-
 /*
  * Semaphore list handling functions
 */
+#ifndef ASL_H
+#define ASL_H
 
+// Preprocessing directives
 #include "../phase1/pcb.h"
 #include "../h/const.h"
 #include "../h/types.h"
@@ -31,7 +31,7 @@ static semd_t *semd_h;
 static semd_t *semdFree_h;
 
 /*
- * Check is a list is empty
+ * Check if a list is empty
  * Input:	dummy header of a list
  * Output:	TRUE, if the list is empty
  * 			FALSE, else
@@ -272,18 +272,21 @@ EXTERN pcb_t *headBlocked(int *semAdd);
 }
 
 /*
- * Initialize the ASL
+ * Initialize the semdFree list to contain all the elements of the
+ * array static semd_t semdTable[MAXPROC].
+ * This method will be only called once during data structure
+ * initialization.
 */
 HIDDEN void initASL()
 {
 	static semd_t semdTable[MAXPROC];
 	int i;
 
-	for(i = 0; i < (MAXPROC-1); i++)
+	for(i = 0; i < MAXPROC - 1; i++)
 	{
 		semdTable[i].s_next = &semdTable[i + 1];
 	}
-	semdTable[(MAXPROC-1)].s_next = NULL;
+	semdTable[MAXPROC - 1].s_next = NULL;
 	semdFree_h = &semdTable[0];
 	semd_h = NULL;
 }
