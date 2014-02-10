@@ -8,8 +8,8 @@
 #include "../h/const.h"
 #include "../h/types.h"
 
-// Function definitions
-// [1] List view functions
+// Function declarations
+// [List view functions]
 EXTERN void freePcb(pcb_t *p);
 EXTERN pcb_t *allocPcb(void);
 EXTERN void initPcbs(void);
@@ -19,8 +19,7 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *removeProcQ(pcb_t **tp);
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *headProcQ(pcb_t *tp);
-
-// [2] Tree view functions
+// [Tree view functions[
 EXTERN void initASL(void);
 EXTERN int emptyChild(pcb_t *p);
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
@@ -227,9 +226,9 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 				// [Case 2.2.2.1] p is in the process queue
 				if(p == it)
 				{
-					index->p_prev->p_next = index->p_next;
-					index->p_next->p_prev = index->p_prev;
-					output = index;
+					it->p_prev->p_next = it->p_next;
+					it->p_next->p_prev = it->p_prev;
+					output = it;
 				}
 				// [Case 2.2.2.2] p is not in the process queue
 				else
@@ -250,7 +249,7 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 */
 EXTERN pcb_t *headProcQ(pcb_t *tp)
 {
-	return emptyProcQ((*tp))? NULL : (tp)->p_next;
+	return (emptyProcQ(tp)? NULL : (tp)->p_next);
 }
 
 /*
@@ -260,7 +259,7 @@ EXTERN pcb_t *headProcQ(pcb_t *tp)
  * 						TRUE, 	if ProcBlk has no children
  * 						FALSE, 	otherwise
 */
-EXTERN int emptyChild(pcb_t *p);
+EXTERN int emptyChild(pcb_t *p)
 {
 	int output;
 	// [Case 1] ProcBlk is not NULL
@@ -269,18 +268,18 @@ EXTERN int emptyChild(pcb_t *p);
 		// [Case 1.1] ProcBlk has children
 		if(p->p_child)
 		{
-			output = FALSE
+			output = FALSE;
 		}
 		// [Case 1.2] ProcBlk has no children
 		else
 		{
-			output = TRUE
+			output = TRUE;
 		}
 	}
 	// [Case 2] ProcBlk is NULL
 	else
 	{
-		output = TRUE
+		output = TRUE;
 	}
 	return output;
 }
@@ -289,16 +288,15 @@ EXTERN int emptyChild(pcb_t *p);
  * Make the ProcBlk pointed to by p a child of the ProcBlk
  * pointed to by prnt.
 */
-EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
+EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 {
 	// [Case 1] First child
 	if(emptyChild(prnt))
 	{
 		prnt->p_child = p;
 		p->p_prnt = prnt;
-		p->p_sib =
-			p->p_prev_sib =
-			NULL;
+		p->p_sib = NULL;
+		p->p_prev_sib = NULL;
 	}
 	// [Case 2] Not first child
 	else
@@ -317,7 +315,7 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
  * Return NULL if initially there were no children of p.
  * Otherwise, return a pointer to this removed first child ProcBlk.
 */
-EXTERN pcb_t *removeChild(pcb_t *p);
+EXTERN pcb_t *removeChild(pcb_t *p)
 {
 	pcb_t *output;
 	// [Case 1] ProcBlk has no children
@@ -352,7 +350,7 @@ EXTERN pcb_t *removeChild(pcb_t *p);
  * Note that the element pointed to by p need not be the first
  * child of its parent.
 */
-EXTERN pcb_t *outChild(pcb_t *p);
+EXTERN pcb_t *outChild(pcb_t *p)
 {
 	pcb_t *output;
 	// [Case 1] ProcBlk has no parent
@@ -366,9 +364,8 @@ EXTERN pcb_t *outChild(pcb_t *p);
 		// [Case 2.1] ProcBlk is the only child
 		if(!p->p_sib && !p->p_prev_sib)
 		{
-			p->p_prnt->p_child =
-				p->p_prnt =
-				NULL;
+			p->p_prnt->p_child = NULL;
+			p->p_prnt = NULL;
 		}
 		// [Case 2.2] ProcBlk is not the only child
 		else
@@ -377,28 +374,25 @@ EXTERN pcb_t *outChild(pcb_t *p);
 			if(!p->p_prev_sib)
 			{
 				p->p_prnt->p_child = p->p_sib;
-				p->p_sib->p_prev_sib =
-					p->p_prnt =
-					p->p_sib =
-					NULL;
+				p->p_sib->p_prev_sib = NULL;
+				p->p_prnt = NULL;
+				p->p_sib = NULL;
 			}
 			// [Case 2.2.2] ProcBlk is the last child
 			else if(!p->p_sib)
 			{
-				p->p_prev_sib->p_sib =
-					p->p_prnt =
-					p->p_prev_sib =
-					NULL;
+				p->p_prev_sib->p_sib = NULL;
+				p->p_prnt = NULL;
+				p->p_prev_sib = NULL;
 			}
 			// [Case 2.2.3] ProcBlk is a middle child
 			else
 			{
 				p->p_prev_sib->p_sib = p->p_sib;
 				p->p_sib->p_prev_sib = p->p_prev_sib;
-				p->p_prnt =
-					p->p_sib =
-					p->p_prev_sib =
-					NULL;
+				p->p_prnt = NULL;
+				p->p_sib = NULL;
+				p->p_prev_sib = NULL;
 			}
 		}
 		output = p;

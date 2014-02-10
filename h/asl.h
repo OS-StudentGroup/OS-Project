@@ -9,7 +9,7 @@
 #include "../h/const.h"
 #include "../h/types.h"
 
-// Function definitions
+// Function declarations
 // [internal functions]
 HIDDEN inline int isEmpty(semd_t *header);
 HIDDEN inline void addToASL(semd_t *sem, int *semAdd);
@@ -147,6 +147,28 @@ HIDDEN inline semd_t *freeSemaphore(int *semAdd)
 }
 
 /*
+ * Initialize the semdFree list to contain all the elements of the
+ * array static semd_t semdTable[MAXPROC + 1].
+ * The size is increased by one because of the dummy header.
+ * This method will be only called once during data structure
+ * initialization.
+*/
+EXTERN void initSemd(void)
+{
+	static semd_t semdTable[MAXPROC + 1];
+	int i;
+
+	for(i = 0; i < MAXPROC; i++)
+	{
+		semdTable[i].s_next = &semdTable[i + 1];
+	}
+
+	semdTable[MAXPROC].s_next = NULL;
+	semdFree_h = &semdTable[0];
+	semd_h = NULL;
+}
+
+/*
  * Insert the ProcBlk pointed to by p at the tail of the process queue
  * associated with the semaphore whose physical address is semAdd
  * and set the semaphore address of p to semAdd.
@@ -159,7 +181,7 @@ HIDDEN inline semd_t *freeSemaphore(int *semAdd)
  * list is empty, return TRUE.
  * In all other cases return FALSE.
 */
-EXTERN int insertBlocked(int *semAdd, pcb_t *p);
+EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 {
 	int output;
 	semd_t *sem = findSemaphore(semAdd);
@@ -229,7 +251,7 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
  * queue associated with p’s semaphore, which is an error
  * condition, return NULL; otherwise, return p.
 */
-EXTERN pcb_t *outBlocked(pcb_t *p);
+EXTERN pcb_t *outBlocked(pcb_t *p)
 {
 	pcb_t *output;
 	semd_t *sem = findSemaphore(p->p_semAdd);
@@ -253,7 +275,7 @@ EXTERN pcb_t *outBlocked(pcb_t *p);
  * Return NULL if semAdd is not found on the ASL or if the
  * process queue associated with semAdd is empty.
 */
-EXTERN pcb_t *headBlocked(int *semAdd);
+EXTERN pcb_t *headBlocked(int *semAdd)
 {
 	pcb_t *output;
 	semd_t *sem = findSemaphore(semAdd);
@@ -261,7 +283,7 @@ EXTERN pcb_t *headBlocked(int *semAdd);
 	// [Case 1] semAdd is in ASL
 	if(sem)
 	{
-		output = headProcQ(sema->s_procQ);
+		output = headProcQ(sem->s_procQ);
 	}
 	// [Case 2] semAdd is not in ASL
 	else
@@ -269,27 +291,5 @@ EXTERN pcb_t *headBlocked(int *semAdd);
 		output = NULL;
 	}
 	return output;
-}
-
-/*
- * Initialize the semdFree list to contain all the elements of the
- * array static semd_t semdTable[MAXPROC + 1].
- * The size is increased by one because of the dummy header.
- * This method will be only called once during data structure
- * initialization.
-*/
-HIDDEN void initASL()
-{
-	static semd_t semdTable[MAXPROC + 1];
-	int i;
-
-	for(i = 0; i < MAXPROC; i++)
-	{
-		semdTable[i].s_next = &semdTable[i + 1];
-	}
-
-	semdTable[MAXPROC].s_next = NULL;
-	semdFree_h = &semdTable[0];
-	semd_h = NULL;
 }
 #endif
