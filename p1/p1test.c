@@ -195,7 +195,7 @@ int main() {
 
 
 	/* check ASL */
-	initSemd();
+	initASL();
 	addokbuf("Initialized active semaphore list   \n");
 
 	/* check removeBlocked and insertBlocked */
