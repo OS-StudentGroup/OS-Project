@@ -57,7 +57,7 @@ EXTERN pcb_t *allocPcb(void)
 		pcb->p_prnt = NULL;
 		pcb->p_child = NULL;
 		pcb->p_sib = NULL;
-		pcb->p_prev_sib = NULL;
+		pcb->p_semAdd = NULL;
 		output = pcb;
 	}
 	// [Case 2] pcbFree is empty
@@ -118,11 +118,11 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 	if(!p) return;
 
 	// [Case 1] ProcQ is empty
-	if(emptyProcQ((*tp)))
+	if(emptyProcQ(*tp))
 	{
-		(*tp) = p;
-		(*tp)->p_next = (*tp);
-		(*tp)->p_prev = (*tp);
+		*tp = p;
+		(*tp)->p_next = *tp;
+		(*tp)->p_prev = *tp;
 	}
 	// [Case 2] ProcQ is not empty
 	else
@@ -130,8 +130,8 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 		p->p_next = (*tp)->p_next;
 		(*tp)->p_next->p_prev = p;
 		(*tp)->p_next = p;
-		p->p_prev = (*tp);
-		(*tp) = p;
+		p->p_prev = *tp;
+		*tp = p;
 	}
 }
 
@@ -152,7 +152,7 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	// [Case 1] ProcQ has 1 ProcBlk
 	if((*tp)->p_next == *tp)
 	{
-		output = (*tp);
+		output = *tp;
 		*tp = mkEmptyProcQ();
 	}
 	// [Case 2] ProcQ has >1 ProcBlk
@@ -184,13 +184,13 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	// [Case 1] ProcQ has 1 ProcBlk
 	if((*tp)->p_next == *tp)
 	{
-		// [Case 1.1] p is in the process queue
+		// [Case 1.1] p is in ProcQ
 		if(*tp == p)
 		{
-			output = *tp;
+			output = p;
 			*tp = mkEmptyProcQ();
 		}
-		// [Case 1.2] p is not in the process queue
+		// [Case 1.2] p is not in ProcQ
 		else
 		{
 			output = NULL;
@@ -199,31 +199,30 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	// [Case 2] ProcQ has >1 ProcBlk
 	else
 	{
-		it = tp;
+		it = *tp;
 		// Iterate PCB queue until
 		do
 		{
 			it = it->p_next;
 		}
 		// the end is reached OR the ProcBlk is found
-		while(it != tp && it != p);
+		while(it != *tp && it != p);
 
-		// [Case 2.1] p is in the process queue
-		if(p == it)
+		// [Case 2.1] p is in ProcQ
+		if(it == p)
 		{
+			output = p;
 			it->p_prev->p_next = it->p_next;
 			it->p_next->p_prev = it->p_prev;
 
 			// [Sub-Case] p is in the tail
-			if(it == tp)
+			if(it == *tp)
 			{
 				// Update the tail-pointer
 				*tp = (*tp)->p_prev;
 			}
-
-			output = it;
 		}
-		// [Case 2.2] p is not in the process queue
+		// [Case 2.2] p is not in ProcQ
 		else
 		{
 			output = NULL;
@@ -241,7 +240,7 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 */
 EXTERN pcb_t *headProcQ(pcb_t *tp)
 {
-	return emptyProcQ(tp)? NULL : (tp)->p_next;
+	return emptyProcQ(tp)? NULL : tp->p_next;
 }
 
 /*
@@ -330,11 +329,8 @@ EXTERN pcb_t *outChild(pcb_t *p)
 {
 	pcb_t *it;
 
-	// Pre-conditions: ProcBlk has parent
-	if(!p->p_prnt) return NULL;
-
-	p->p_prnt = NULL;
-	p->p_sib = NULL;
+	// Pre-conditions: p is not NULL and has parent
+	if(!p || !p->p_prnt) return NULL;
 
 	// [Case 1] ProcBlk is the first child
 	if(p->p_prnt->p_child == p)
@@ -351,6 +347,8 @@ EXTERN pcb_t *outChild(pcb_t *p)
 			it = it->p_sib);
 		it->p_sib = p->p_sib;
 	}
+	p->p_prnt = NULL;
+	p->p_sib = NULL;
 
 	return p;
 }
