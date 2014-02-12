@@ -150,11 +150,11 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	// Pre-conditions: semAdd and p are not NULL
 	if(!semAdd || !p) return FALSE;
 
-	p->p_semAdd = semAdd;
 	sem = findSemaphore(semAdd);
 	// [Case 1] semAdd is in ASL
 	if(sem->s_next)
 	{
+		p->p_semAdd = semAdd;
 	 	insertProcQ(&sem->s_next->s_procQ, p);
 	 	output = FALSE;
 	}
@@ -165,6 +165,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 		// [Case 2.1] semdFree is not empty
 		if(sem)
 		{
+			p->p_semAdd = semAdd;
 			sem->s_semAdd = semAdd;
 			insertProcQ(&sem->s_procQ, p);
 			addToASL(sem);

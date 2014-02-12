@@ -45,7 +45,7 @@ char errbuf[128];			/* contains reason for failing */
 char msgbuf[128];			/* nonrecoverable error message before shut down */
 int sem[MAXSEM];
 int onesem;
-pcb_t	*procp[MAXPROC], *p, *shit, *qa, *q, *firstproc, *lastproc, *midproc;
+pcb_t	*procp[MAXPROC], *p, *qa, *q, *firstproc, *lastproc, *midproc;
 char *mp = okbuf;
 
 /* This function places the specified character string in okbuf and
@@ -193,6 +193,7 @@ int main() {
 	for (i = 0; i < 10; i++) 
 		freePcb(procp[i]);
 
+
 	/* check ASL */
 	initASL();
 	addokbuf("Initialized active semaphore list   \n");
@@ -215,6 +216,7 @@ int main() {
 	p = removeBlocked(&sem[11]);
 	if (insertBlocked(&sem[11],p))
 		adderrbuf("removeBlocked(): fails to return to free list   ");
+
 	if (insertBlocked(&onesem, procp[9]) == FALSE)
 		adderrbuf("insertBlocked(): inserted more than MAXPROC   ");
 
@@ -238,23 +240,7 @@ int main() {
 		adderrbuf("headBlocked(1): NULL for an existent queue   ");
 	if (q != procp[9])
 		adderrbuf("headBlocked(1): wrong process returned   ");
-
-
-
 	p = outBlocked(q);
-//	initASL();
-//	insertBlocked(&sem[0], procp[0]));
-//	q = headBlocked(&sem[0]);
-//	if(q != procp[0])
-//		adderrbuf("FUCK  q != procp[0]   ");
-//	p = outBlocked(q);
-//	if (q->p_semAdd != &sem[0])
-//		adderrbuf("FUCK  q->p_semAdd != &sem[0]   ");
-//	if (p == NULL)
-//		adderrbuf("FUCK  p == NULL   ");
-
-
-
 	if (p != q)
 		adderrbuf("outBlocked(1): couldn't remove from valid queue   ");
 	q = headBlocked(&sem[9]);
@@ -277,4 +263,3 @@ int main() {
 	return 0;
 
 }
-
