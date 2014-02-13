@@ -12,8 +12,7 @@ typedef struct pcb_t
 {
 	// process queue fields
 	struct pcb_t
-		*p_next, 		// pointer to next entry
-		*p_prev,		// pointer to previous entry
+		*p_next, 		// pointer to next entryW
 
 	// process tree fields
 		*p_prnt, 		// pointer to parent

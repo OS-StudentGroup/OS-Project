@@ -51,10 +51,10 @@ HIDDEN inline void addToASL(semd_t *sem)
 	semd_t *it;
 
 	// Iterate ASL until
-	for(it = semd_h;
+	for (it = semd_h;
 		// the end of ASL is reached OR
 		it->s_next &&
-		// a semaphore with higher semAdd is found
+		// a semaphore with larger semAdd is found
 		it->s_next->s_semAdd < sem->s_semAdd;
 		it = it->s_next);
 
@@ -72,7 +72,7 @@ HIDDEN inline semd_t *removeFromSemdFree(void)
 	semd_t *output;
 
 	// Pre-conditions: semdFree is not empty
-	if(isEmpty(semdFree_h)) return NULL;
+	if (isEmpty(semdFree_h)) return NULL;
 
 	output = semdFree_h->s_next;
 	semdFree_h->s_next = semdFree_h->s_next->s_next;
@@ -92,7 +92,7 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 	semd_t *it;
 
 	// Iterate ASL until
-	for(it = semd_h;
+	for (it = semd_h;
 		// the end of ASL is reached OR
 		it->s_next &&
 		// the semaphore is found
@@ -115,7 +115,7 @@ EXTERN void initASL(void)
 	static semd_t semdTable[MAXPROC + 2];
 	int i;
 
-	for(i = 0; i < MAXPROC; i++)
+	for (i = 0; i < MAXPROC; i++)
 	{
 		semdTable[i].s_next = &semdTable[i + 1];
 	}
@@ -148,11 +148,11 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	semd_t *sem;
 
 	// Pre-conditions: semAdd and p are not NULL
-	if(!semAdd || !p) return FALSE;
+	if (!semAdd || !p) return FALSE;
 
 	sem = findSemaphore(semAdd);
 	// [Case 1] semAdd is in ASL
-	if(sem->s_next)
+	if (sem->s_next)
 	{
 		p->p_semAdd = semAdd;
 	 	insertProcQ(&sem->s_next->s_procQ, p);
@@ -163,7 +163,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	{
 		sem = removeFromSemdFree();
 		// [Case 2.1] semdFree is not empty
-		if(sem)
+		if (sem)
 		{
 			p->p_semAdd = semAdd;
 			sem->s_semAdd = semAdd;
@@ -196,16 +196,16 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 	semd_t *sem, *tmp1, *tmp2;
 
 	// Pre-conditions: semAdd is not NULL
-	if(!semAdd) return NULL;
+	if (!semAdd) return NULL;
 
 	sem = findSemaphore(semAdd);
 	// [Case 1] semAdd is in ASL
-	if(sem->s_next)
+	if (sem->s_next)
 	{
 		output = removeProcQ(&sem->s_next->s_procQ);
 
 		// [SubCase] ProcQ is now empty
-		if(emptyProcQ(sem->s_next->s_procQ))
+		if (emptyProcQ(sem->s_next->s_procQ))
 		{
 			tmp1 = semdFree_h->s_next;
 			tmp2 = sem->s_next->s_next;
@@ -238,11 +238,11 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	semd_t *sem;
 
 	// Pre-conditions: p is not NULL
-	if(!p) return NULL;
+	if (!p) return NULL;
 
 	sem = findSemaphore(p->p_semAdd);
 	// [Case 1] semAdd is in ASL
-	if(sem->s_next)
+	if (sem->s_next)
 	{
 		output = outProcQ(&sem->s_next->s_procQ, p);
 	}
@@ -267,11 +267,11 @@ EXTERN pcb_t *headBlocked(int *semAdd)
 	semd_t *sem;
 
 	// Pre-conditions: semAdd is not NULL
-	if(!semAdd) return NULL;
+	if (!semAdd) return NULL;
 
 	sem = findSemaphore(semAdd);
 	// [Case 1] semAdd is in ASL
-	if(sem->s_next)
+	if (sem->s_next)
 	{
 		output = headProcQ(sem->s_next->s_procQ);
 	}

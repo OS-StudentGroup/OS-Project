@@ -1,25 +1,25 @@
-# MACRO DEFINITIONS
-## COMMANDS
-### [C compiler]
+# [1] MACRO DEFINITIONS
+# [1.1] COMMANDS
+# C compiler
 CC = arm-none-eabi-gcc
-### [C compiler flags]
+# C compiler flags
 CFLAGS = -mcpu=arm7tdmi -c -o
-### [LD linker]
+# Linker
 LD = arm-none-eabi-ld
-### [UARM converter]
+# UARM converter
 UC = elf2uarm
 
-## ADDRESSES
-### [UARM library]
+# [1.2] ADDRESSES
+# UARM library
 LIBUARM = /usr/include/uarm/libuarm.o
-### [LD linker scripts]
+# Linker scripts
 LDSCRIPTS = /usr/include/uarm/ldscripts/elf32ltsarm.h.uarmcore.x
-### [C run-time start-off]
+# C run-time start-off
 CRTSO = /usr/include/uarm/crtso.o
-### [p1test.c]
+# p1test.c
 P1TEST = p1test.c
 
-# RULE DEFINITIONS
+# [2] RULE DEFINITIONS
 all: uarm
 uarm: p1test
 	$(UC) -k p1test
@@ -28,6 +28,6 @@ p1test: p1test.o
 p1test.o: $(P1TEST)
 	$(CC) $(CFLAGS) p1test.o $(P1TEST)
 
-# CLEANING
+# [3] CLEANING
 clean:
 	rm -rf *o all

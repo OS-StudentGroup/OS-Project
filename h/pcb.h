@@ -50,10 +50,9 @@ EXTERN pcb_t *allocPcb(void)
 
 	pcb = removeProcQ(&pcbFree_h);
 	// [Case 1] pcbFree is not empty
-	if(pcb)
+	if (pcb)
 	{
 		pcb->p_next = NULL;
-		pcb->p_prev = NULL;
 		pcb->p_prnt = NULL;
 		pcb->p_child = NULL;
 		pcb->p_sib = NULL;
@@ -80,7 +79,7 @@ EXTERN void initPcbs(void)
 	int i;
 
 	pcbFree_h = mkEmptyProcQ();
-	for(i = 0; i < MAXPROC; i++)
+	for (i = 0; i < MAXPROC; i++)
 	{
 		insertProcQ(&pcbFree_h, &pcbs[i]);
 	}
@@ -115,22 +114,19 @@ EXTERN int emptyProcQ(pcb_t *tp)
 EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 {
 	// Pre-conditions: p is not NULL
-	if(!p) return;
+	if (!p) return;
 
 	// [Case 1] ProcQ is empty
-	if(emptyProcQ(*tp))
+	if (emptyProcQ(*tp))
 	{
 		*tp = p;
 		(*tp)->p_next = *tp;
-		(*tp)->p_prev = *tp;
 	}
 	// [Case 2] ProcQ is not empty
 	else
 	{
 		p->p_next = (*tp)->p_next;
-		(*tp)->p_next->p_prev = p;
 		(*tp)->p_next = p;
-		p->p_prev = *tp;
 		*tp = p;
 	}
 }
@@ -147,10 +143,10 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	pcb_t *output;
 
 	// Pre-conditions: ProcQ is not empty
-	if(emptyProcQ(*tp)) return NULL;
+	if (emptyProcQ(*tp)) return NULL;
 
 	// [Case 1] ProcQ has 1 ProcBlk
-	if((*tp)->p_next == *tp)
+	if ((*tp)->p_next == *tp)
 	{
 		output = *tp;
 		*tp = mkEmptyProcQ();
@@ -159,7 +155,6 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	else
 	{
 		output = (*tp)->p_next;
-		(*tp)->p_next->p_next->p_prev = *tp;
 		(*tp)->p_next = (*tp)->p_next->p_next;
 	}
 
@@ -179,13 +174,13 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	pcb_t *output, *it;
 
 	// Pre-conditions: ProcQ is not empty and p is not NULL
-	if(emptyProcQ(*tp) || !p) return NULL;
+	if (emptyProcQ(*tp) || !p) return NULL;
 
 	// [Case 1] ProcQ has 1 ProcBlk
-	if((*tp)->p_next == *tp)
+	if ((*tp)->p_next == *tp)
 	{
 		// [Case 1.1] p is in ProcQ
-		if(*tp == p)
+		if (*tp == p)
 		{
 			output = p;
 			*tp = mkEmptyProcQ();
@@ -205,21 +200,20 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 		{
 			it = it->p_next;
 		}
-		// the end is reached OR the ProcBlk is found
-		while(it != *tp && it != p);
+		// the end is reached OR p is found
+		while (it != *tp && it->p_next != p);
 
 		// [Case 2.1] p is in ProcQ
-		if(it == p)
+		if (it->p_next == p)
 		{
 			output = p;
-			it->p_prev->p_next = it->p_next;
-			it->p_next->p_prev = it->p_prev;
+			it->p_next = it->p_next->p_next;
 
 			// [Sub-Case] p is in the tail
-			if(it == *tp)
+			if (it->p_next == *tp)
 			{
 				// Update the tail-pointer
-				*tp = (*tp)->p_prev;
+				*tp = it;
 			}
 		}
 		// [Case 2.2] p is not in ProcQ
@@ -255,14 +249,14 @@ EXTERN int emptyChild(pcb_t *p)
 	int output;
 
 	// Pre-conditions: p is not NULL
-	if(!p) return TRUE;
+	if (!p) return TRUE;
 
-	// [Case 1] ProcBlk has children
-	if(p->p_child)
+	// [Case 1] p has children
+	if (p->p_child)
 	{
 		output = FALSE;
 	}
-	// [Case 2] ProcBlk has no children
+	// [Case 2] p has no children
 	else
 	{
 		output = TRUE;
@@ -280,12 +274,12 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 	pcb_t *it;
 
 	// Pre-conditions: prnt and p are not NULL
-	if(!prnt || !p) return;
+	if (!prnt || !p) return;
 
 	p->p_sib = NULL;
 	p->p_prnt = prnt;
 	// [Case 1] p is the first child
-	if(emptyChild(prnt))
+	if (emptyChild(prnt))
 	{
 		prnt->p_child = p;
 	}
@@ -293,7 +287,7 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 	else
 	{
 		// Add after last sibling
-		for(it = prnt->p_child; it->p_sib; it = it->p_sib);
+		for (it = prnt->p_child; it->p_sib; it = it->p_sib);
 		it->p_sib = p;
 	}
 }
@@ -308,8 +302,8 @@ EXTERN pcb_t *removeChild(pcb_t *p)
 {
 	pcb_t *output;
 
-	// Pre-conditions: ProcBlk has children
-	if(emptyChild(p)) return NULL;
+	// Pre-conditions: p has children
+	if (emptyChild(p)) return NULL;
 
 	output = p->p_child;
 	p->p_child = p->p_child->p_sib;
@@ -330,18 +324,18 @@ EXTERN pcb_t *outChild(pcb_t *p)
 	pcb_t *it;
 
 	// Pre-conditions: p is not NULL and has parent
-	if(!p || !p->p_prnt) return NULL;
+	if (!p || !p->p_prnt) return NULL;
 
-	// [Case 1] ProcBlk is the first child
-	if(p->p_prnt->p_child == p)
+	// [Case 1] p is the first child
+	if (p->p_prnt->p_child == p)
 	{
 		p->p_prnt->p_child = p->p_sib;
 	}
-	// [Case 2] ProcBlk is not the first child
+	// [Case 2] p is not the first child
 	else
 	{
 		// Iterate the children until
-		for(it = p->p_prnt->p_child;
+		for (it = p->p_prnt->p_child;
 			// the child before p is reached
 			it->p_sib != p;
 			it = it->p_sib);
