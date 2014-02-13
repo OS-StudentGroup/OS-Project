@@ -207,47 +207,43 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	// Pre-conditions: ProcQ is not empty and p is not NULL
 	if (emptyProcQ(*tp) || !p) return NULL;
 
-	// [Case 1] ProcQ has 1 ProcBlk
-	if (hasOneProcBlk(*tp))
+	// [Case 1] p is in the tail
+	if (*tp == p)
 	{
-		// [Case 1.1] p is in ProcQ
-		if (*tp == p)
+		// [Case 1.1] ProcQ has 1 ProcBlk
+		if (hasOneProcBlk(*tp))
 		{
-			output = p;
-			output->p_next = NULL;
 			*tp = mkEmptyProcQ();
 		}
-		// [Case 1.2] p is not in ProcQ
+		// [Case 1.2] ProcQ has >1 ProcBlk
 		else
 		{
-			output = NULL;
+			// Iterate PCB queue until the end is reached
+			for (	it = (*tp)->p_next;
+					it->p_next != *tp;
+					it = it->p_next);
+
+			it->p_next = it->p_next->p_next;
+			*tp = it;
 		}
+
+		output = p;
+		output->p_next = NULL;
 	}
-	// [Case 2] ProcQ has >1 ProcBlk
+	// [Case 2] p is not in the tail
 	else
 	{
-		it = *tp;
-		// Iterate PCB queue until
-		do
-		{
-			it = it->p_next;
-		}
-		// the end is reached OR p is found
-		while (it != *tp && it->p_next != p);
+		// Iterate PCB queue until the end is reached OR p is found
+		for (	it = *tp;
+				it->p_next->p_next != *tp && it->p_next != p;
+				it = it->p_next);
 
 		// [Case 2.1] p is in ProcQ
 		if (it->p_next == p)
 		{
-			output = p;
-
 			it->p_next = it->p_next->p_next;
-			// [Sub-Case] p is in the tail
-			if (it->p_next == *tp)
-			{
-				// Update the tail-pointer
-				*tp = it;
-			}
 
+			output = p;
 			output->p_next = NULL;
 		}
 		// [Case 2.2] p is not in ProcQ
