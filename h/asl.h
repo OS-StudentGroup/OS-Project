@@ -1,6 +1,4 @@
-/*
- * Semaphore list handling functions
-*/
+// Semaphore list handling functions
 #ifndef ASL_H
 #define ASL_H
 
@@ -10,13 +8,14 @@
 #include "../h/types.h"
 
 // Function declarations
-// [internal functions]
+// [1] internal functions
 HIDDEN inline int isEmpty(semd_t *header);
 HIDDEN inline void addToASL(semd_t *sem);
 HIDDEN inline semd_t *removeFromSemdFree(void);
 HIDDEN inline semd_t *findSemaphore(int *semAdd);
 HIDDEN inline semd_t *freeSemaphore(int *semAdd);
-// [external functions]
+
+// [2] external functions
 EXTERN void initASL(void);
 EXTERN int insertBlocked(int *semAdd, pcb_t *p);
 EXTERN pcb_t *removeBlocked(int *semAdd);
@@ -42,21 +41,19 @@ HIDDEN inline int isEmpty(semd_t *header)
 
 /*
  * Add a semaphore to ASL
- * Input:	semd_t *sem,	pointer to the semaphore
- * 			int *semAdd,	physical address of the semaphore
+ * Input:	semd_t *sem, pointer to the semaphore
  * Output:	void
 */
 HIDDEN inline void addToASL(semd_t *sem)
 {
 	semd_t *it;
 
-	// Iterate ASL until
-	for (it = semd_h;
-		// the end of ASL is reached OR
-		it->s_next &&
-		// a semaphore with larger semAdd is found
-		it->s_next->s_semAdd < sem->s_semAdd;
-		it = it->s_next);
+	/* Iterate ASL until:
+	  		the end of ASL is reached OR
+	  		a semaphore with larger semAdd is found */
+	for (	it = semd_h;
+			it->s_next && it->s_next->s_semAdd < sem->s_semAdd;
+			it = it->s_next);
 
 	sem->s_next = it->s_next;
 	it->s_next = sem;
@@ -65,7 +62,8 @@ HIDDEN inline void addToASL(semd_t *sem)
 /*
  * Removes a semaphore from the top of semdFree
  * Input:	void
- * Output:	semd_t *, pointer to a free semaphore
+ * Output:	semd_t *, 	pointer to a free semaphore, if semdFree is not empty
+ * 						NULL, else
 */
 HIDDEN inline semd_t *removeFromSemdFree(void)
 {
@@ -91,13 +89,12 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 {
 	semd_t *it;
 
-	// Iterate ASL until
-	for (it = semd_h;
-		// the end of ASL is reached OR
-		it->s_next &&
-		// the semaphore is found
-		it->s_next->s_semAdd != semAdd;
-		it = it->s_next);
+	/* Iterate ASL until:
+	  		the end of ASL is reached OR
+	  		the semaphore is found */
+	for (	it = semd_h;
+			it->s_next && it->s_next->s_semAdd != semAdd;
+			it = it->s_next);
 
 	return it;
 }
@@ -109,6 +106,8 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
  * semdFree and one for ASL).
  * This method will be only called once during data structure
  * initialization.
+ *
+ * Computational Cost := O(n) : n = "max number of semaphors"
 */
 EXTERN void initASL(void)
 {
@@ -141,6 +140,8 @@ EXTERN void initASL(void)
  * If a new semaphore descriptor needs to be allocated and the semdFree
  * list is empty, return TRUE.
  * In all other cases return FALSE.
+ *
+ * Computational Cost := O(n) : n = "max number of semaphors"
 */
 EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 {
@@ -189,6 +190,8 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
  * If the process queue for this semaphore becomes empty
  * (emptyProcQ(s_procq) is TRUE), remove the semaphore
  * descriptor from the ASL and return it to the semdFree list.
+ *
+ * Computational Cost := O(n) : n = "max number of semaphors"
 */
 EXTERN pcb_t *removeBlocked(int *semAdd)
 {
@@ -231,6 +234,9 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
  * If ProcBlk pointed to by p does not appear in the process
  * queue associated with p’s semaphore, which is an error
  * condition, return NULL; otherwise, return p.
+ *
+ * Computational Cost := O(max{n, m}) : n = "max number of semaphors",
+ *                                      m = "max number of concurrent processes"
 */
 EXTERN pcb_t *outBlocked(pcb_t *p)
 {
@@ -241,6 +247,7 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	if (!p) return NULL;
 
 	sem = findSemaphore(p->p_semAdd);
+
 	// [Case 1] semAdd is in ASL
 	if (sem->s_next)
 	{
@@ -260,6 +267,8 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
  * process queue associated with the semaphore semAdd.
  * Return NULL if semAdd is not found on the ASL or if the
  * process queue associated with semAdd is empty.
+ *
+ * Computational Cost := O(n) : n = "max number of semaphors"
 */
 EXTERN pcb_t *headBlocked(int *semAdd)
 {
@@ -270,6 +279,7 @@ EXTERN pcb_t *headBlocked(int *semAdd)
 	if (!semAdd) return NULL;
 
 	sem = findSemaphore(semAdd);
+
 	// [Case 1] semAdd is in ASL
 	if (sem->s_next)
 	{

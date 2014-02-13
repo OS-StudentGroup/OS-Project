@@ -1,6 +1,4 @@
-/*
- * PCB handling functions
-*/
+// PCB handling functions
 #ifndef PCB_H
 #define PCB_H
 
@@ -9,7 +7,11 @@
 #include "../h/types.h"
 
 // Function declarations
-// [List view functions]
+// [1] internal functions
+HIDDEN inline int hasOneProcBlk(pcb_t *tp);
+
+// [2] external functions
+// [2.1] List view functions
 EXTERN void freePcb(pcb_t *p);
 EXTERN pcb_t *allocPcb(void);
 EXTERN void initPcbs(void);
@@ -19,7 +21,7 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *removeProcQ(pcb_t **tp);
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *headProcQ(pcb_t *tp);
-// [Tree view functions[
+// [2.2] Tree view functions
 EXTERN int emptyChild(pcb_t *p);
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
 EXTERN pcb_t *removeChild(pcb_t *p);
@@ -29,7 +31,20 @@ EXTERN pcb_t *outChild(pcb_t *p);
 HIDDEN pcb_t *pcbFree_h;
 
 /*
+ * Check if a ProcQ has only one ProcBlk
+ * Input:	tail-pointer of a non-empty ProcQ
+ * Output:	TRUE, if ProcQ has only one ProcBlk
+ * 			FALSE, else
+*/
+HIDDEN inline int hasOneProcBlk(pcb_t *tp)
+{
+	return tp->p_next == tp;
+}
+
+/*
  * Insert the element pointed to by p onto the pcbFree list.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN void freePcb(pcb_t *p)
 {
@@ -43,6 +58,8 @@ EXTERN void freePcb(pcb_t *p)
  * and then return a pointer to the removed element.
  * ProcBlk’s get reused, so it is important that no previous value
  * persist in a ProcBlk when it gets reallocated.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN pcb_t *allocPcb(void)
 {
@@ -72,6 +89,8 @@ EXTERN pcb_t *allocPcb(void)
  * Initialize the pcbFree list to contain all the elements of the
  * static array of MAXPROC ProcBlk’s.
  * This method will be called only once during data structure initialization.
+ *
+ * Computational Cost := O(n) : n = "max number of concurrent processes"
 */
 EXTERN void initPcbs(void)
 {
@@ -90,6 +109,8 @@ EXTERN void initPcbs(void)
  * process queue.
  * Return a pointer to the tail of an empty process queue;
  * i.e. NULL.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN pcb_t *mkEmptyProcQ(void)
 {
@@ -99,6 +120,8 @@ EXTERN pcb_t *mkEmptyProcQ(void)
 /*
  * Return TRUE if the queue whose tail is pointed to by tp is empty.
  * Return FALSE otherwise.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN int emptyProcQ(pcb_t *tp)
 {
@@ -110,6 +133,8 @@ EXTERN int emptyProcQ(pcb_t *tp)
  * tail-pointer is pointed to by tp.
  * Note the double indirection through tp to allow for the possible
  * updating of the tail pointer as well.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 {
@@ -137,6 +162,8 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
  * Return NULL if the process queue was initially empty; otherwise
  * return the pointer to the removed element.
  * Update the process queue’s tail pointer if necessary.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN pcb_t *removeProcQ(pcb_t **tp)
 {
@@ -146,9 +173,10 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	if (emptyProcQ(*tp)) return NULL;
 
 	// [Case 1] ProcQ has 1 ProcBlk
-	if ((*tp)->p_next == *tp)
+	if (hasOneProcBlk(*tp))
 	{
 		output = *tp;
+		output->p_next = NULL;
 		*tp = mkEmptyProcQ();
 	}
 	// [Case 2] ProcQ has >1 ProcBlk
@@ -156,6 +184,7 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	{
 		output = (*tp)->p_next;
 		(*tp)->p_next = (*tp)->p_next->p_next;
+		output->p_next = NULL;
 	}
 
 	return output;
@@ -168,6 +197,8 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
  * If the desired entry is not in the indicated queue
  * (an error condition), return NULL; otherwise, return p.
  * Note that p can point to any element of the process queue.
+ *
+ * Computational Cost := O(n) : n = "max number of concurrent processes"
 */
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 {
@@ -177,12 +208,13 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	if (emptyProcQ(*tp) || !p) return NULL;
 
 	// [Case 1] ProcQ has 1 ProcBlk
-	if ((*tp)->p_next == *tp)
+	if (hasOneProcBlk(*tp))
 	{
 		// [Case 1.1] p is in ProcQ
 		if (*tp == p)
 		{
 			output = p;
+			output->p_next = NULL;
 			*tp = mkEmptyProcQ();
 		}
 		// [Case 1.2] p is not in ProcQ
@@ -207,14 +239,16 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 		if (it->p_next == p)
 		{
 			output = p;
-			it->p_next = it->p_next->p_next;
 
+			it->p_next = it->p_next->p_next;
 			// [Sub-Case] p is in the tail
 			if (it->p_next == *tp)
 			{
 				// Update the tail-pointer
 				*tp = it;
 			}
+
+			output->p_next = NULL;
 		}
 		// [Case 2.2] p is not in ProcQ
 		else
@@ -231,6 +265,8 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
  * tail is pointed to by tp.
  * Do not remove this ProcBlk from the process queue.
  * Return NULL if the process queue is empty.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN pcb_t *headProcQ(pcb_t *tp)
 {
@@ -242,7 +278,9 @@ EXTERN pcb_t *headProcQ(pcb_t *tp)
  * Input:	pcb_t *p,	pointer to a ProcBlk
  * Output:	int
  * 						TRUE, 	if ProcBlk has no children
- * 						FALSE, 	otherwise
+ * 						FALSE, 	else
+ *
+ * Computational Cost := O(1)
 */
 EXTERN int emptyChild(pcb_t *p)
 {
@@ -268,6 +306,8 @@ EXTERN int emptyChild(pcb_t *p)
 /*
  * Make the ProcBlk pointed to by p a child of the ProcBlk
  * pointed to by prnt.
+ *
+ * Computational Cost := O(n) : n = "max number of concurrent processes"
 */
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 {
@@ -278,6 +318,7 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 
 	p->p_sib = NULL;
 	p->p_prnt = prnt;
+
 	// [Case 1] p is the first child
 	if (emptyChild(prnt))
 	{
@@ -297,6 +338,8 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
  * longer a child of p.
  * Return NULL if initially there were no children of p.
  * Otherwise, return a pointer to this removed first child ProcBlk.
+ *
+ * Computational Cost := O(1)
 */
 EXTERN pcb_t *removeChild(pcb_t *p)
 {
@@ -318,6 +361,8 @@ EXTERN pcb_t *removeChild(pcb_t *p)
  * otherwise, return p.
  * Note that the element pointed to by p need not be the first
  * child of its parent.
+ *
+ * Computational Cost := O(n) : n = "max number of concurrent processes"
 */
 EXTERN pcb_t *outChild(pcb_t *p)
 {
@@ -334,13 +379,14 @@ EXTERN pcb_t *outChild(pcb_t *p)
 	// [Case 2] p is not the first child
 	else
 	{
-		// Iterate the children until
-		for (it = p->p_prnt->p_child;
-			// the child before p is reached
-			it->p_sib != p;
-			it = it->p_sib);
+		// Iterate the children until the child before p is reached
+		for (	it = p->p_prnt->p_child;
+				it->p_sib != p;
+				it = it->p_sib);
+
 		it->p_sib = p->p_sib;
 	}
+
 	p->p_prnt = NULL;
 	p->p_sib = NULL;
 

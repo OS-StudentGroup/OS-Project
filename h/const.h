@@ -1,7 +1,6 @@
+// Kaya specific constants
 #ifndef CONST_H
 #define CONST_H
-
-/* Kaya specific constants */
 
 // max number of overall concurrent processes
 #define MAXPROC 	20

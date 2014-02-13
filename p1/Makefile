@@ -1,5 +1,5 @@
 # [1] MACRO DEFINITIONS
-# [1.1] COMMANDS
+# [1.1] Commands
 # C compiler
 CC = arm-none-eabi-gcc
 # C compiler flags
@@ -9,7 +9,7 @@ LD = arm-none-eabi-ld
 # UARM converter
 UC = elf2uarm
 
-# [1.2] ADDRESSES
+# [1.2] Addresses
 # UARM library
 LIBUARM = /usr/include/uarm/libuarm.o
 # Linker scripts

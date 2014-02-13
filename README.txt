@@ -28,9 +28,10 @@ The following computational remarks are worth to mention:
 The specifications propose a single circularly linked list, but also accept a double circularly linked list.
 We tried both ways. Nonetheless, we reached the conclusion that adding a second pointer (called p_prev) wouldn't improve the overall computational complexity. Therefore, there is no point in wasting memory with a second pointer. 
 			
-[2] Concerning the PCQ process tree:
+[2] Concerning the PCB process tree:
 The specifications propose a NULL-terminated single linearly linked list, but also accept a NULL-terminated double linearly linked list.
-We tried both ways. Nonetheless, we would like to note that neither of them is the best solution. Since the specifications state that the pointer p_child should point to the first child of the process, then the best solution would rather be a double circularly linked list.
+We tried both ways. Nonetheless, we would like to note that neither of them is the best solution.
+Since the specifications state that the pointer p_child should point to the first child of the process, then the best solution would rather be a double circularly linked list.
 In particular, the function EXTERN void insertChild(pcb_t *prnt, pcb_t *p) would cost:
 	[*] O(1), with a double circularly linked list
 	[*] O(n), with the data structures given by the specifications.
