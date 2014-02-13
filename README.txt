@@ -2,10 +2,10 @@
 List of the Team Members
 ----------------------------------------
 
-[1] Tommaso Ognibene 	(tommaso.ognibene@studio.unibo.it)
-[2] Neta Kedem				()
-[3] Alessio					()
-[4] Alessio Panipucci	()
+[*] Tommaso Ognibene 	(tommaso.ognibene@studio.unibo.it)
+[*] Neta Kedem			()
+[*] Alessio				()
+[*] Alessio Panipucci	()
 
 ----------------------------------------
 UARM Core File Generation & Testing
@@ -20,7 +20,7 @@ UARM Core File Generation & Testing
 Design Decisions & Computational Remarks
 ----------------------------------------
 
-The testing and analysis shall verify that the design specifications have been met.
+The testing and analysis shall verify that the design specifications (http://www.cs.unibo.it/~renzo/so/Kaya.pdf) have been met.
 
 The following computational remarks are worth to mention:
 
