@@ -199,7 +199,7 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
  * Note that p can point to any element of the process queue.
  *
  * Computational Cost := O(n) : n = "max number of concurrent processes"
-*/
+ */
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 {
 	pcb_t *output, *it;
@@ -207,43 +207,47 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	// Pre-conditions: ProcQ is not empty and p is not NULL
 	if (emptyProcQ(*tp) || !p) return NULL;
 
-	// [Case 1] p is in the tail
-	if (*tp == p)
+	// [Case 1] ProcQ has 1 ProcBlk
+	if (hasOneProcBlk(*tp))
 	{
-		// [Case 1.1] ProcQ has 1 ProcBlk
-		if (hasOneProcBlk(*tp))
+		// [Case 1.1] p is in ProcQ
+		if (*tp == p)
 		{
+			output = p;
+			output->p_next = NULL;
 			*tp = mkEmptyProcQ();
 		}
-		// [Case 1.2] ProcQ has >1 ProcBlk
+		// [Case 1.2] p is not in ProcQ
 		else
 		{
-			// Iterate PCB queue until the end is reached
-			for (	it = (*tp)->p_next;
-					it->p_next != *tp;
-					it = it->p_next);
-
-			it->p_next = it->p_next->p_next;
-			*tp = it;
+			output = NULL;
 		}
-
-		output = p;
-		output->p_next = NULL;
 	}
-	// [Case 2] p is not in the tail
+	// [Case 2] ProcQ has >1 ProcBlk
 	else
 	{
-		// Iterate PCB queue until the end is reached OR p is found
-		for (	it = *tp;
-				it->p_next->p_next != *tp && it->p_next != p;
-				it = it->p_next);
+		it = *tp;
+		// Iterate PCB queue until
+		do
+		{
+			it = it->p_next;
+		}
+		// the end is reached OR p is found
+		while (it != *tp && it->p_next != p);
 
 		// [Case 2.1] p is in ProcQ
 		if (it->p_next == p)
 		{
-			it->p_next = it->p_next->p_next;
-
 			output = p;
+
+			it->p_next = it->p_next->p_next;
+			// [Sub-Case] p is in the tail
+			if (it->p_next == *tp)
+			{
+				// Update the tail-pointer
+				*tp = it;
+			}
+
 			output->p_next = NULL;
 		}
 		// [Case 2.2] p is not in ProcQ

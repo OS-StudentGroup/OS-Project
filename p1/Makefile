@@ -20,11 +20,15 @@ CRTSO = /usr/include/uarm/crtso.o
 P1TEST = p1test.c
 
 # [2] RULE DEFINITIONS
+# Main target
 all: uarm
+# Converting
 uarm: p1test
 	$(UC) -k p1test
+# Linking
 p1test: p1test.o
 	$(LD) -T $(LDSCRIPTS) -o p1test $(CRTSO) $(LIBUARM) p1test.o
+# Compiling
 p1test.o: $(P1TEST)
 	$(CC) $(CFLAGS) p1test.o $(P1TEST)
 
