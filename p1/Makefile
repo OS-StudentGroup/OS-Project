@@ -1,6 +1,6 @@
 # [1] MACRO DEFINITIONS
 # [1.1] Commands
-# C compiler
+# Cross C compiler
 CC = arm-none-eabi-gcc
 # C compiler flags
 CFLAGS = -mcpu=arm7tdmi -c -o

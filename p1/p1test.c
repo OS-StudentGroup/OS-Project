@@ -33,7 +33,6 @@
 
 #include "../h/const.h"
 #include "../h/types.h"
-
 #include "../h/libuarm.h"
 #include "../h/pcb.h"
 #include "../h/asl.h"
@@ -116,7 +115,7 @@ int main() {
 
 	q = outProcQ(&qa, firstproc);
 	if ((q == NULL) || (q != firstproc))
-		adderrbuf("outProcQ(&qa, firstproc) failed on first entry   ");		
+		adderrbuf("outProcQ(&qa, firstproc) failed on first entry   ");
 	freePcb(q);
 
 	q = outProcQ(&qa, midproc);
@@ -190,7 +189,7 @@ int main() {
 	addokbuf("insertChild(), removeChild() and emptyChild() ok   \n");
 	addokbuf("process tree module ok      \n");
 
-	for (i = 0; i < 10; i++) 
+	for (i = 0; i < 10; i++)
 		freePcb(procp[i]);
 
 

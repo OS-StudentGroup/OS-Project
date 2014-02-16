@@ -9,7 +9,9 @@
 // Function declarations
 // [1] internal functions
 HIDDEN inline int hasOneProcBlk(pcb_t *tp);
-
+HIDDEN inline void resetPointers(pcb_t *p);
+HIDDEN inline void removeFamily(pcb_t *prnt);
+HIDDEN inline void updatePointers(pcb_t *p);
 // [2] external functions
 // [2.1] List view functions
 EXTERN void freePcb(pcb_t *p);
@@ -42,6 +44,45 @@ HIDDEN inline int hasOneProcBlk(pcb_t *tp)
 }
 
 /*
+ * Set all the process's pointers to NULL
+ * Input:	the process
+ * Output:	void
+*/
+HIDDEN inline void resetPointers(pcb_t *p)
+{
+	p->p_next = NULL;
+	p->p_prnt = NULL;
+	p->p_child = NULL;
+	p->p_sib = NULL;
+	p->p_semAdd = NULL;
+}
+
+/*
+ * When removing a parent, also remove all the children
+ * Input:	the parent
+ * Output:	void
+*/
+HIDDEN inline void removeFamily(pcb_t *prnt)
+{
+	while (removeChild(prnt));
+}
+
+/*
+ * When removing a process, also update all the relative pointers
+ * Input:	the process
+ * Output:	void
+*/
+HIDDEN inline void updatePointers(pcb_t *p)
+{
+	// [1] p is no longer a child
+	outChild(p);
+	// [2] p is no longer a parent
+	removeFamily(p);
+	// [3] p has all pointers set to NULL
+	resetPointers(p);
+}
+
+/*
  * Insert the element pointed to by p onto the pcbFree list.
  *
  * Computational Cost := O(1)
@@ -63,18 +104,15 @@ EXTERN void freePcb(pcb_t *p)
 */
 EXTERN pcb_t *allocPcb(void)
 {
-	pcb_t *pcb, *output;
+	pcb_t *p, *output;
 
-	pcb = removeProcQ(&pcbFree_h);
+	p = removeProcQ(&pcbFree_h);
+
 	// [Case 1] pcbFree is not empty
-	if (pcb)
+	if (p)
 	{
-		pcb->p_next = NULL;
-		pcb->p_prnt = NULL;
-		pcb->p_child = NULL;
-		pcb->p_sib = NULL;
-		pcb->p_semAdd = NULL;
-		output = pcb;
+		resetPointers(p);
+		output = p;
 	}
 	// [Case 2] pcbFree is empty
 	else
@@ -176,7 +214,6 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	if (hasOneProcBlk(*tp))
 	{
 		output = *tp;
-		output->p_next = NULL;
 		*tp = mkEmptyProcQ();
 	}
 	// [Case 2] ProcQ has >1 ProcBlk
@@ -184,8 +221,10 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	{
 		output = (*tp)->p_next;
 		(*tp)->p_next = (*tp)->p_next->p_next;
-		output->p_next = NULL;
 	}
+
+	// Update all the relative pointers
+	//updatePointers(output);
 
 	return output;
 }
@@ -214,7 +253,10 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 		if (*tp == p)
 		{
 			output = p;
-			output->p_next = NULL;
+
+			// Update all the relative pointers
+			//updatePointers(output);
+
 			*tp = mkEmptyProcQ();
 		}
 		// [Case 1.2] p is not in ProcQ
@@ -226,21 +268,19 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	// [Case 2] ProcQ has >1 ProcBlk
 	else
 	{
-		it = *tp;
-		// Iterate PCB queue until
-		do
-		{
-			it = it->p_next;
-		}
-		// the end is reached OR p is found
-		while (it != *tp && it->p_next != p);
+		/* Iterate PCB until:
+		  		the end is reached OR
+		  		the ProcBlk is found */
+		for (	it = (*tp)->p_next;
+				it != *tp && it->p_next != p;
+				it = it->p_next);
 
 		// [Case 2.1] p is in ProcQ
 		if (it->p_next == p)
 		{
 			output = p;
-
 			it->p_next = it->p_next->p_next;
+
 			// [Sub-Case] p is in the tail
 			if (it->p_next == *tp)
 			{
@@ -248,7 +288,8 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 				*tp = it;
 			}
 
-			output->p_next = NULL;
+			// Update all the relative pointers
+			//updatePointers(output);
 		}
 		// [Case 2.2] p is not in ProcQ
 		else
@@ -274,11 +315,8 @@ EXTERN pcb_t *headProcQ(pcb_t *tp)
 }
 
 /*
- * Check if a ProcBlk has no children
- * Input:	pcb_t *p,	pointer to a ProcBlk
- * Output:	int
- * 						TRUE, 	if ProcBlk has no children
- * 						FALSE, 	else
+ * Return TRUE if the ProcBlk pointed to by p has no children.
+ * Return FALSE otherwise.
  *
  * Computational Cost := O(1)
 */
@@ -328,7 +366,9 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 	else
 	{
 		// Add after last sibling
-		for (it = prnt->p_child; it->p_sib; it = it->p_sib);
+		for (	it = prnt->p_child;
+				it->p_sib;
+				it = it->p_sib);
 		it->p_sib = p;
 	}
 }
@@ -350,6 +390,9 @@ EXTERN pcb_t *removeChild(pcb_t *p)
 
 	output = p->p_child;
 	p->p_child = p->p_child->p_sib;
+
+	output->p_sib = NULL;
+	output->p_prnt = NULL;
 
 	return output;
 }
