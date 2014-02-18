@@ -9,9 +9,6 @@
 // Function declarations
 // [1] internal functions
 HIDDEN inline int hasOneProcBlk(pcb_t *tp);
-HIDDEN inline void resetPointers(pcb_t *p);
-HIDDEN inline void removeFamily(pcb_t *prnt);
-HIDDEN inline void updatePointers(pcb_t *p);
 // [2] external functions
 // [2.1] List view functions
 EXTERN void freePcb(pcb_t *p);
@@ -44,45 +41,6 @@ HIDDEN inline int hasOneProcBlk(pcb_t *tp)
 }
 
 /*
- * Set all the process's pointers to NULL
- * Input:	the process
- * Output:	void
-*/
-HIDDEN inline void resetPointers(pcb_t *p)
-{
-	p->p_next = NULL;
-	p->p_prnt = NULL;
-	p->p_child = NULL;
-	p->p_sib = NULL;
-	p->p_semAdd = NULL;
-}
-
-/*
- * When removing a parent, also remove all the children
- * Input:	the parent
- * Output:	void
-*/
-HIDDEN inline void removeFamily(pcb_t *prnt)
-{
-	while (removeChild(prnt));
-}
-
-/*
- * When removing a process, also update all the relative pointers
- * Input:	the process
- * Output:	void
-*/
-HIDDEN inline void updatePointers(pcb_t *p)
-{
-	// [1] p is no longer a child
-	outChild(p);
-	// [2] p is no longer a parent
-	removeFamily(p);
-	// [3] p has all pointers set to NULL
-	resetPointers(p);
-}
-
-/*
  * Insert the element pointed to by p onto the pcbFree list.
  *
  * Computational Cost := O(1)
@@ -111,7 +69,11 @@ EXTERN pcb_t *allocPcb(void)
 	// [Case 1] pcbFree is not empty
 	if (p)
 	{
-		resetPointers(p);
+		p->p_next = NULL;
+		p->p_prnt = NULL;
+		p->p_child = NULL;
+		p->p_sib = NULL;
+		p->p_semAdd = NULL;
 		output = p;
 	}
 	// [Case 2] pcbFree is empty
@@ -223,9 +185,6 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 		(*tp)->p_next = (*tp)->p_next->p_next;
 	}
 
-	// Update all the relative pointers
-	//updatePointers(output);
-
 	return output;
 }
 
@@ -253,10 +212,6 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 		if (*tp == p)
 		{
 			output = p;
-
-			// Update all the relative pointers
-			//updatePointers(output);
-
 			*tp = mkEmptyProcQ();
 		}
 		// [Case 1.2] p is not in ProcQ
@@ -287,9 +242,6 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 				// Update the tail-pointer
 				*tp = it;
 			}
-
-			// Update all the relative pointers
-			//updatePointers(output);
 		}
 		// [Case 2.2] p is not in ProcQ
 		else
@@ -391,8 +343,8 @@ EXTERN pcb_t *removeChild(pcb_t *p)
 	output = p->p_child;
 	p->p_child = p->p_child->p_sib;
 
-	output->p_sib = NULL;
 	output->p_prnt = NULL;
+	output->p_sib = NULL;
 
 	return output;
 }
