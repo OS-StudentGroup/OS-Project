@@ -26,14 +26,14 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
 EXTERN pcb_t *removeChild(pcb_t *p);
 EXTERN pcb_t *outChild(pcb_t *p);
 
-// Private global variable that points to the head of the pcbFree list
+// Pointer to the head of the pcbFree list
 HIDDEN pcb_t *pcbFree_h;
 
 /*
  * Check if a ProcQ has only one ProcBlk
- * Input:	tail-pointer of a non-empty ProcQ
- * Output:	TRUE, if ProcQ has only one ProcBlk
- * 			FALSE, else
+ * Input:   tail-pointer of a non-empty ProcQ
+ * Output:  TRUE, if ProcQ has only one ProcBlk
+ *          FALSE, else
 */
 HIDDEN inline int hasOneProcBlk(pcb_t *tp)
 {
@@ -62,24 +62,18 @@ EXTERN void freePcb(pcb_t *p)
 */
 EXTERN pcb_t *allocPcb(void)
 {
-	pcb_t *p, *output;
+	pcb_t *output;
 
-	p = removeProcQ(&pcbFree_h);
+	output = removeProcQ(&pcbFree_h);
 
-	// [Case 1] pcbFree is not empty
-	if (p)
+	// [Case] pcbFree is not empty
+	if (output)
 	{
-		p->p_next = NULL;
-		p->p_prnt = NULL;
-		p->p_child = NULL;
-		p->p_sib = NULL;
-		p->p_semAdd = NULL;
-		output = p;
-	}
-	// [Case 2] pcbFree is empty
-	else
-	{
-		output = NULL;
+		output->p_next = NULL;
+		output->p_prnt = NULL;
+		output->p_child = NULL;
+		output->p_sib = NULL;
+		output->p_semAdd = NULL;
 	}
 
 	return output;
@@ -224,11 +218,11 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 	else
 	{
 		/* Iterate PCB until:
-		  		the end is reached OR
-		  		the ProcBlk is found */
-		for (	it = (*tp)->p_next;
-				it != *tp && it->p_next != p;
-				it = it->p_next);
+			the end is reached OR
+			the ProcBlk is found */
+		for (it = (*tp)->p_next;
+			 it != *tp && it->p_next != p;
+			 it = it->p_next);
 
 		// [Case 2.1] p is in ProcQ
 		if (it->p_next == p)
@@ -318,9 +312,9 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 	else
 	{
 		// Add after last sibling
-		for (	it = prnt->p_child;
-				it->p_sib;
-				it = it->p_sib);
+		for (it = prnt->p_child;
+			 it->p_sib;
+			 it = it->p_sib);
 		it->p_sib = p;
 	}
 }
@@ -375,9 +369,9 @@ EXTERN pcb_t *outChild(pcb_t *p)
 	else
 	{
 		// Iterate the children until the child before p is reached
-		for (	it = p->p_prnt->p_child;
-				it->p_sib != p;
-				it = it->p_sib);
+		for (it = p->p_prnt->p_child;
+			 it->p_sib != p;
+			 it = it->p_sib);
 
 		it->p_sib = p->p_sib;
 	}

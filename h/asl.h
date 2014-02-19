@@ -23,10 +23,10 @@ EXTERN pcb_t *outBlocked(pcb_t *p);
 EXTERN pcb_t *headBlocked(int *semAdd);
 
 // Pointer to the head of the Active Semaphore List (ASL)
-static semd_t *semd_h;
+HIDDEN semd_t *semd_h;
 
 // Pointer to the head of the unused semaphore descriptors list
-static semd_t *semdFree_h;
+HIDDEN semd_t *semdFree_h;
 
 /*
  * Check if a list is empty
@@ -36,7 +36,7 @@ static semd_t *semdFree_h;
 */
 HIDDEN inline int isEmpty(semd_t *header)
 {
-	return header->s_next? FALSE : TRUE;
+	return !header->s_next;
 }
 
 /*
@@ -49,11 +49,11 @@ HIDDEN inline void addToASL(semd_t *sem)
 	semd_t *it;
 
 	/* Iterate ASL until:
-	  		the end of ASL is reached OR
-	  		a semaphore with larger semAdd is found */
-	for (	it = semd_h;
-			it->s_next && it->s_next->s_semAdd < sem->s_semAdd;
-			it = it->s_next);
+	  	the end of ASL is reached OR
+	  	a semaphore with larger semAdd is found */
+	for (it = semd_h;
+		 it->s_next && it->s_next->s_semAdd < sem->s_semAdd;
+		 it = it->s_next);
 
 	sem->s_next = it->s_next;
 	it->s_next = sem;
@@ -90,11 +90,11 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 	semd_t *it;
 
 	/* Iterate ASL until:
-	  		the end of ASL is reached OR
-	  		the semaphore is found */
-	for (	it = semd_h;
-			it->s_next && it->s_next->s_semAdd != semAdd;
-			it = it->s_next);
+	  	the end of ASL is reached OR
+	  	the semaphore is found */
+	for (it = semd_h;
+		 it->s_next && it->s_next->s_semAdd != semAdd;
+		 it = it->s_next);
 
 	return it;
 }
@@ -111,7 +111,7 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 */
 EXTERN void initASL(void)
 {
-	static semd_t semdTable[MAXPROC + 2];
+	HIDDEN semd_t semdTable[MAXPROC + 2];
 	int i;
 
 	for (i = 0; i < MAXPROC; i++)
@@ -198,7 +198,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 EXTERN pcb_t *removeBlocked(int *semAdd)
 {
 	pcb_t *output;
-	semd_t *sem, *tmp1, *tmp2;
+	semd_t *sem, *tmp;
 
 	// Pre-conditions: semAdd is not NULL
 	if (!semAdd) return NULL;
@@ -212,14 +212,14 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 		// [SubCase] ProcQ is now empty
 		if (emptyProcQ(sem->s_next->s_procQ))
 		{
-			tmp1 = semdFree_h->s_next;
-			tmp2 = sem->s_next->s_next;
+			tmp = sem->s_next->s_next;
 
 			// Add semAdd to semdFree
+			sem->s_next->s_next = semdFree_h->s_next;
 			semdFree_h->s_next = sem->s_next;
-			semdFree_h->s_next->s_next = tmp1;
+
 			// Remove semAdd from ASL
-			sem->s_next = tmp2;
+			sem->s_next = tmp;
 		}
 	}
 	// [Case 2] semAdd is not in ASL
