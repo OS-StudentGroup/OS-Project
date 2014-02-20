@@ -1,6 +1,4 @@
-/*
- * Types definitions
- */
+// Types definitions
 #ifndef TYPES_H
 #define TYPES_H
 
