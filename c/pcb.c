@@ -201,8 +201,8 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 			the end is reached OR
 			the ProcBlk is found */
 		for (it = (*tp)->p_next;
-			 it != *tp && it->p_next != p;
-			 it = it->p_next);
+             it != *tp && it->p_next != p;
+             it = it->p_next);
 
 		// [Case 2.1] p is in ProcQ
 		if (it->p_next == p)
@@ -293,8 +293,8 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 	{
 		// Add after last sibling
 		for (it = prnt->p_child;
-			 it->p_sib;
-			 it = it->p_sib);
+             it->p_sib;
+             it = it->p_sib);
 		it->p_sib = p;
 	}
 }
@@ -350,8 +350,8 @@ EXTERN pcb_t *outChild(pcb_t *p)
 	{
 		// Iterate the children until the child before p is reached
 		for (it = p->p_prnt->p_child;
-			 it->p_sib != p;
-			 it = it->p_sib);
+             it->p_sib != p;
+             it = it->p_sib);
 
 		it->p_sib = p->p_sib;
 	}
