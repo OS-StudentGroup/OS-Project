@@ -47,9 +47,9 @@ HIDDEN inline void addToASL(semd_t *sem)
 	/* Iterate ASL until:
 	  	the end of ASL is reached OR
 	  	a semaphore with larger semAdd is found */
-	for (	it = semd_h;
-			it->s_next && it->s_next->s_semAdd < sem->s_semAdd;
-			it = it->s_next);
+	for (it = semd_h;
+		 it->s_next && it->s_next->s_semAdd < sem->s_semAdd;
+		 it = it->s_next);
 
 	sem->s_next = it->s_next;
 	it->s_next = sem;
@@ -88,9 +88,9 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 	/* Iterate ASL until:
 	  	the end of ASL is reached OR
 	  	the semaphore is found */
-	for (	it = semd_h;
-			it->s_next && it->s_next->s_semAdd != semAdd;
-			it = it->s_next);
+	for (it = semd_h;
+		 it->s_next && it->s_next->s_semAdd != semAdd;
+		 it = it->s_next);
 
 	return it;
 }
