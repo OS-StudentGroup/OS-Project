@@ -1,6 +1,6 @@
 // PCB handling functions
 
-// Pre-processing directives
+// Dependencies
 #include "../h/pcb.h"
 
 // Internal function declarations
@@ -68,7 +68,7 @@ EXTERN pcb_t *allocPcb(void)
 */
 EXTERN void initPcbs(void)
 {
-	HIDDEN pcb_t pcbs[MAXPROC];
+	static pcb_t pcbs[MAXPROC];
 	int i;
 
 	pcbFree_h = mkEmptyProcQ();
@@ -210,7 +210,7 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 			output = p;
 			it->p_next = it->p_next->p_next;
 
-			// [Sub-Case] p is in the tail
+			// [SubCase] p is in the tail
 			if (it->p_next == *tp)
 			{
 				// Update the tail-pointer

@@ -4,7 +4,7 @@ List of the Team Members
 
 [*] Tommaso Ognibene        (tommaso.ognibene@studio.unibo.it)
 [*] Neta Kedem              (neta.kedem@studio.unibo.it)
-[*] Alessio	Gozzoli         (alessio.gozzoli@studio.unibo.it)
+[*] Alessio Gozzoli         (alessio.gozzoli@studio.unibo.it)
 [*] Alessandro Panipucci    (alessandro.panipucci@studio.unibo.it)
 
 ----------------------------------------

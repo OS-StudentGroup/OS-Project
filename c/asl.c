@@ -1,7 +1,15 @@
 // Semaphore list handling functions
 
-// Pre-processing directives
+// Dependencies
 #include "../h/asl.h"
+
+// Semaphore Descriptor type
+typedef struct semd_t
+{
+	struct semd_t *s_next; 		// next element on the ASL
+	int *s_semAdd; 				// pointer to the semaphore
+	pcb_t *s_procQ; 			// tail pointer to a process queue
+} semd_t;
 
 // Internal function declarations
 HIDDEN inline int isEmpty(semd_t *header);
@@ -18,9 +26,9 @@ HIDDEN semd_t *semdFree_h;
 
 /*
  * Check if a list is empty
- * Input:	dummy header of a list
- * Output:	TRUE, if the list is empty
- * 			FALSE, else
+ * Input:   dummy header of a list
+ * Output:  TRUE, if the list is empty
+ *          FALSE, else
 */
 HIDDEN inline int isEmpty(semd_t *header)
 {
@@ -29,8 +37,8 @@ HIDDEN inline int isEmpty(semd_t *header)
 
 /*
  * Add a semaphore to ASL
- * Input:	semd_t *sem, pointer to the semaphore
- * Output:	void
+ * Input:   semd_t *sem, pointer to the semaphore
+ * Output:  void
 */
 HIDDEN inline void addToASL(semd_t *sem)
 {
@@ -49,9 +57,9 @@ HIDDEN inline void addToASL(semd_t *sem)
 
 /*
  * Removes a semaphore from the top of semdFree
- * Input:	void
- * Output:	semd_t *, 	pointer to a free semaphore, if semdFree is not empty
- * 						NULL, else
+ * Input:   void
+ * Output:  semd_t *,   pointer to a free semaphore, if semdFree is not empty
+ *                      NULL, else
 */
 HIDDEN inline semd_t *removeFromSemdFree(void)
 {
@@ -99,7 +107,7 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 */
 EXTERN void initASL(void)
 {
-	HIDDEN semd_t semdTable[MAXPROC + 2];
+	static semd_t semdTable[MAXPROC + 2];
 	int i;
 
 	for (i = 0; i < MAXPROC; i++)

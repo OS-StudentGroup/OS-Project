@@ -2,7 +2,7 @@
 #ifndef PCB_H
 #define PCB_H
 
-// Pre-processing directives
+// Dependencies
 #include "../h/const.h"
 #include "../h/types.h"
 
@@ -17,6 +17,7 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *removeProcQ(pcb_t **tp);
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p);
 EXTERN pcb_t *headProcQ(pcb_t *tp);
+
 // [2] Tree view functions
 EXTERN int emptyChild(pcb_t *p);
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p);
