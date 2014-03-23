@@ -16,7 +16,7 @@ HIDDEN inline int isEmpty(semd_t *header);
 HIDDEN inline void addToASL(semd_t *sem);
 HIDDEN inline semd_t *removeFromSemdFree(void);
 HIDDEN inline semd_t *findSemaphore(int *semAdd);
-HIDDEN inline semd_t *freeSemaphore(int *semAdd);
+HIDDEN inline void freeSemaphore(semd_t *sem);
 
 // Pointer to the head of the Active Semaphore List (ASL)
 HIDDEN semd_t *semd_h;
@@ -56,7 +56,7 @@ HIDDEN inline void addToASL(semd_t *sem)
 }
 
 /*
- * Removes a semaphore from the top of semdFree
+ * Remove a semaphore from the top of semdFree
  * Input:   void
  * Output:  semd_t *,   pointer to a free semaphore, if semdFree is not empty
  *                      NULL, else
@@ -77,7 +77,7 @@ HIDDEN inline semd_t *removeFromSemdFree(void)
 }
 
 /*
- * Search a given semaphore in ASL
+ * Search a semaphore in ASL
  * Input:	int *semAdd, 	physical address of the semaphore
  * Output:	semd_t *,		pointer to the previous element
 */
@@ -87,12 +87,30 @@ HIDDEN inline semd_t *findSemaphore(int *semAdd)
 
 	/* Iterate ASL until:
 	  	the end of ASL is reached OR
-	  	the semaphore is found */
+	  	a semaphore with >= semAdd is found */
 	for (it = semd_h;
-		 it->s_next && it->s_next->s_semAdd != semAdd;
+		 it->s_next && it->s_next->s_semAdd < semAdd;
 		 it = it->s_next);
 
-	return it;
+	return (it->s_next && it->s_next->s_semAdd == semAdd)? it : NULL;
+}
+
+/*
+ * Remove a semaphore from ASL. Add it to semdFree list.
+ * Input: semd_t *sem, pointer to the previous semaphore (or dummy node)
+*/
+HIDDEN inline void freeSemaphore(semd_t *sem)
+{
+	semd_t *tmp;
+
+	tmp = sem->s_next->s_next;
+
+	// Add semAdd to semdFree
+	sem->s_next->s_next = semdFree_h->s_next;
+	semdFree_h->s_next = sem->s_next;
+
+	// Remove semAdd from ASL
+	sem->s_next = tmp;
 }
 
 /*
@@ -149,7 +167,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 
 	sem = findSemaphore(semAdd);
 	// [Case 1] semAdd is in ASL
-	if (sem->s_next)
+	if (sem)
 	{
 		p->p_semAdd = semAdd;
 	 	insertProcQ(&sem->s_next->s_procQ, p);
@@ -201,21 +219,15 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 
 	sem = findSemaphore(semAdd);
 	// [Case 1] semAdd is in ASL
-	if (sem->s_next)
+	if (sem)
 	{
 		output = removeProcQ(&sem->s_next->s_procQ);
 
 		// [SubCase] ProcQ is now empty
 		if (emptyProcQ(sem->s_next->s_procQ))
 		{
-			tmp = sem->s_next->s_next;
-
-			// Add semAdd to semdFree
-			sem->s_next->s_next = semdFree_h->s_next;
-			semdFree_h->s_next = sem->s_next;
-
-			// Remove semAdd from ASL
-			sem->s_next = tmp;
+			// Deallocate the semaphore
+			freeSemaphore(sem);
 		}
 	}
 	// [Case 2] semAdd is not in ASL
@@ -248,9 +260,16 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	sem = findSemaphore(p->p_semAdd);
 
 	// [Case 1] semAdd is in ASL
-	if (sem->s_next)
+	if (sem)
 	{
 		output = outProcQ(&sem->s_next->s_procQ, p);
+
+		// [SubCase] ProcQ is now empty
+		if (emptyProcQ(sem->s_next->s_procQ))
+		{
+			// Deallocate the semaphore
+			freeSemaphore(sem);
+		}
 	}
 	// [Case 2] semAdd is not in ASL
 	else
@@ -280,7 +299,7 @@ EXTERN pcb_t *headBlocked(int *semAdd)
 	sem = findSemaphore(semAdd);
 
 	// [Case 1] semAdd is in ASL
-	if (sem->s_next)
+	if (sem)
 	{
 		output = headProcQ(sem->s_next->s_procQ);
 	}

@@ -208,7 +208,6 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 		if (it->p_next == p)
 		{
 			output = p;
-			it->p_next = it->p_next->p_next;
 
 			// [SubCase] p is in the tail
 			if (it->p_next == *tp)
@@ -216,6 +215,8 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 				// Update the tail-pointer
 				*tp = it;
 			}
+
+			it->p_next = it->p_next->p_next;
 		}
 		// [Case 2.2] p is not in ProcQ
 		else
@@ -275,28 +276,14 @@ EXTERN int emptyChild(pcb_t *p)
 */
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 {
-	pcb_t *it;
+	pcb_t *tmp;
 
 	// Pre-conditions: prnt and p are not NULL
 	if (!prnt || !p) return;
 
-	p->p_sib = NULL;
+	p->p_sib = prnt->p_child;
 	p->p_prnt = prnt;
-
-	// [Case 1] p is the first child
-	if (emptyChild(prnt))
-	{
-		prnt->p_child = p;
-	}
-	// [Case 2] p is not the first child
-	else
-	{
-		// Add after last sibling
-		for (it = prnt->p_child;
-			 it->p_sib;
-			 it = it->p_sib);
-		it->p_sib = p;
-	}
+	prnt->p_child = p;
 }
 
 /*
