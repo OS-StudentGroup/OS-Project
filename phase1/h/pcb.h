@@ -3,8 +3,8 @@
 #define PCB_H
 
 // Dependencies
-#include "../h/const.h"
-#include "../h/types.h"
+#include "const.h"
+#include "types.h"
 
 // External function declarations
 // [1] List view functions
