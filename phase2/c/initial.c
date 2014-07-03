@@ -6,22 +6,22 @@
 
 #include "../h/initial.h"
  
-HIDDEN void populate(memaddr oldArea, memaddr handler)
+HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 {
 	state_t *newArea;
 
 	/* The new area points to the old area */
-	newArea = (state_t *) area;
+	newArea = (state_t *) oldArea;
 	
 	/* Save the current processor state area */
 	STST(newArea);
 	
 	/* Assign to Program Counter the Exception Handler address */
 	newArea->pc = newArea->ip = handler;
-	newArea->sp = ROMF_EXCVTOP;
+	newArea->sp = RAM_BASE;
 	
-	/* Masked interrupts + Virtual Memory off + Kernel Mode on */
-	newArea->cpsr = (newArea->cpsr | STATUS_KUc) & STATUS_ALL_INT_DISABLE & ~STATUS_VMp;
+	/* Masked interrupts; Virtual Memory off; Kernel Mode on */
+	newArea->cpsr = newArea->cpsr | STATUS_SYS_MODE | STATUS_ALL_INT_DISABLE;
 }
 
 void main(void)
@@ -29,16 +29,17 @@ void main(void)
 	pcb_t *init;
 	int i;
 
-	/* Populate the four processor state areas in the ROM Reserved Frame */
-	populate(SYSBK_NEWAREA, (memaddr) sysBpHandler);		/* SYS/BP Exception Handling */
-	populate(PGMTRAP_NEWAREA, (memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
-	populate(INT_NEWAREA, (memaddr) intHandler);			/* Interrupt Exception Handling */
+	/* Populate the 4 processor state areas in the ROM Reserved Frame */
+	populateArea(SYSBK_NEWAREA, (memaddr) sysBpHandler);		/* SYS/BP Exception Handling */
+	populateArea(PGMTRAP_NEWAREA, (memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
+	populateArea(INT_NEWAREA, (memaddr) intHandler);			/* Interrupt Exception Handling */
+	populateArea(TLB_NEWAREA, (memaddr) tlbHandler);			/* TLB Exception Handling */
 
-	/* Initialize Level 2 data structures */
+	/* Initialize data structures */
 	initPcbs();
 	initSemd();
 	
-	/* Initialize all nucleus maintained variables */
+	/* Initialize nucleus maintained variables */
 	mkEmptyProcQ(&readyQueue);
 	currentProcess = NULL;
 	processCount = softBlockCount = pidCount = timerTick = 0;
@@ -68,16 +69,16 @@ void main(void)
 	if (!(init = allocPcb()))
 		PANIC();
 	
-	/* Unmasked interrupts on; Virtual Memory off; Kernel-Mode on */
-	init->p_state.status = (init->p_state.status | STATUS_IEp | STATUS_INT_UNMASKED | STATUS_KUc) & ~STATUS_VMp;
+	/* Unmasked interrupts; Virtual Memory off; Kernel-Mode on */
+	init->p_state.cpsr = init->p_state.cpsr | STATUS_SYS_MODE | STATUS_ALL_INT_ENABLE;
 	
-	/* Initialize SP */
-	init->p_state.reg_sp = RAMTOP - FRAME_SIZE;
+	/* Initialize Stack Pointer */
+	init->p_state.sp = RAMTOP - FRAME_SIZE;
 	
-	/* Initialize PC */
-	init->p_state.pc_epc = init->p_state.reg_t9 = (memaddr)test;
+	/* Initialize Program Counter */
+	init->p_state.pc = (memaddr) test;
 	
-	/* Initialize PID */
+	/* Initialize Process Id */
 	pidCount++;
 	init->p_pid = pidCount;
 	
@@ -90,7 +91,7 @@ void main(void)
 	processCount++;
 	
 	/* Start timer */
-	startTimerTick = GET_TODLOW;
+	startTimerTick = 0;
 	
 	/* Run scheduler */
 	scheduler();
