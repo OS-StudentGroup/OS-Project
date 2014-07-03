@@ -6,19 +6,22 @@
 
 #include "../h/initial.h"
  
-HIDDEN void populate(memaddr area, memaddr handler)
+HIDDEN void populate(memaddr oldArea, memaddr handler)
 {
 	state_t *newArea;
-	
+
+	/* The new area points to the old area */
 	newArea = (state_t *) area;
+	
+	/* Save the current processor state area */
 	STST(newArea);
 	
-	/* Imposta il PC all'indirizzo del gestore delle eccezioni */
-	newArea->pc_epc = newArea->reg_t9 = handler;
-	newArea->reg_sp = RAMTOP;
+	/* Assign to Program Counter the Exception Handler address */
+	newArea->pc = newArea->ip = handler;
+	newArea->sp = ROMF_EXCVTOP;
 	
-	/* Interrupt mascherati, Memoria Virtuale spenta, Kernel Mode attivo */
-	newArea->status = (newArea->status | STATUS_KUc) & ~STATUS_INT_UNMASKED & ~STATUS_VMp;
+	/* Masked interrupts + Virtual Memory off + Kernel Mode on */
+	newArea->cpsr = (newArea->cpsr | STATUS_KUc) & STATUS_ALL_INT_DISABLE & ~STATUS_VMp;
 }
 
 void main(void)
@@ -26,21 +29,19 @@ void main(void)
 	pcb_t *init;
 	int i;
 
-	/* Populate the four New Areas in the ROM Reserved Frame */
+	/* Populate the four processor state areas in the ROM Reserved Frame */
 	populate(SYSBK_NEWAREA, (memaddr) sysBpHandler);		/* SYS/BP Exception Handling */
 	populate(PGMTRAP_NEWAREA, (memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
-	populate(TLB_NEWAREA, (memaddr) tlbHandler);			/* TLB Exception Handling */
 	populate(INT_NEWAREA, (memaddr) intHandler);			/* Interrupt Exception Handling */
 
-	/* Initialize the Level 2 data structures */
+	/* Initialize Level 2 data structures */
 	initPcbs();
 	initSemd();
 	
 	/* Initialize all nucleus maintained variables */
 	mkEmptyProcQ(&readyQueue);
 	currentProcess = NULL;
-	processCount = softBlockCount = pidCount = 0;
-	timerTick = 0;
+	processCount = softBlockCount = pidCount = timerTick = 0;
 	
 	/* Initialize PCB table */
 	for (i = 0; i < MAXPROC; i++)
