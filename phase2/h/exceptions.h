@@ -11,7 +11,15 @@
 #include "initial.h"
 #include "interrupts.h"
 #include "scheduler.h"
-#include "libumps.h"
+#include "libuarm.h"
+
+/**
+@brief Save current processor state into a new state.
+@param current Current state.
+@param new New state.
+@return Void.
+*/
+HIDDEN void saveCurrentState(state_t *currentState, state_t *newState);
 
 /**
 @brief (SYS1) Create a new process.

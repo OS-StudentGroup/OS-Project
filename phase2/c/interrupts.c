@@ -8,14 +8,25 @@
 
 HIDDEN int recognizeDev(int bitMapDevice)
 {
-	if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_0)) return DEV_CHECK_LINE_0;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_1)) return DEV_CHECK_LINE_1;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_2)) return DEV_CHECK_LINE_2;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_3)) return DEV_CHECK_LINE_3;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_4)) return DEV_CHECK_LINE_4;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_5)) return DEV_CHECK_LINE_5;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_6)) return DEV_CHECK_LINE_6;
-	else return DEV_CHECK_LINE_7;
+	switch (bitMapDevice)
+	{
+	case bitMapDevice | DEV_CHECK_ADDRESS_0:
+		return DEV_CHECK_LINE_0;
+	case bitMapDevice | DEV_CHECK_ADDRESS_1:
+		return DEV_CHECK_LINE_1;
+	case bitMapDevice | DEV_CHECK_ADDRESS_2:
+		return DEV_CHECK_LINE_2;
+	case bitMapDevice | DEV_CHECK_ADDRESS_3:
+		return DEV_CHECK_LINE_3;
+	case bitMapDevice | DEV_CHECK_ADDRESS_4:
+		return DEV_CHECK_LINE_4;
+	case bitMapDevice | DEV_CHECK_ADDRESS_5:
+		return DEV_CHECK_LINE_5;
+	case bitMapDevice | DEV_CHECK_ADDRESS_6:
+		return DEV_CHECK_LINE_6;
+	default:
+		return DEV_CHECK_LINE_7;
+	}
 }
 
 HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev)

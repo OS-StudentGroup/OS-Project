@@ -11,7 +11,7 @@
 #include "exceptions.h"
 #include "initial.h"
 #include "scheduler.h"
-#include "libumps.h"
+#include "libuarm.h"
 
 /* Old Area dell'Interrupt */
 HIDDEN state_t *int_old_area = (state_t *) INT_OLDAREA;
@@ -26,32 +26,22 @@ HIDDEN int recvStatByte, transmStatByte;
 HIDDEN int *status, *command;
 
 /**
-  * @brief Riconosce il device che ha un interrupt pendente sulla bitmap passata per parametro.
-  * @param bitMapDevice : bitmap degli interrupt pendenti per linea di interrupt.
-  * @return Ritorna l'indice del device che ha un interrupt pendente su quella bitmap.
- */
-HIDDEN int recognizeDev(int bitMapDevice)
-{
-	if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_0)) return DEV_CHECK_LINE_0;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_1)) return DEV_CHECK_LINE_1;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_2)) return DEV_CHECK_LINE_2;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_3)) return DEV_CHECK_LINE_3;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_4)) return DEV_CHECK_LINE_4;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_5)) return DEV_CHECK_LINE_5;
-	else if(bitMapDevice == (bitMapDevice | DEV_CHECK_ADDRESS_6)) return DEV_CHECK_LINE_6;
-	else return DEV_CHECK_LINE_7;
-}
+@brief Riconosce il device che ha un interrupt pendente sulla bitmap passata per parametro.
+@param bitMapDevice : bitmap degli interrupt pendenti per linea di interrupt.
+@return Ritorna l'indice del device che ha un interrupt pendente su quella bitmap.
+*/
+HIDDEN int recognizeDev(int bitMapDevice);
 
 /**
-  * @brief Sblocca il processo sul semaforo del device che ha causato l'interrupt.
-  *	   Se non c'è nessun processo da bloccare si aggiorna la matrice degli status word dei device,
-  *	   altrimenti si inserisce nella readyQueue.
-  * @param *semaddr : indirizzo del semaforo associato al device che ha causato l'interrupt
-  * @param status : campo del device corrispondente al suo stato
-  * @param line : linea di interrupt su cui è presente l'interrupt pendente da gestire
-  * @param dev : device che ha causato l'interrupt pendente da gestire
-  * @return Ritorna il pcb bloccato sul semaforo del device il cui indirizzo è passato per parametro, se presente
- */
+@brief Sblocca il processo sul semaforo del device che ha causato l'interrupt.
+Se non c'è nessun processo da bloccare si aggiorna la matrice degli status word dei device,
+altrimenti si inserisce nella readyQueue.
+@param *semaddr : indirizzo del semaforo associato al device che ha causato l'interrupt
+@param status : campo del device corrispondente al suo stato
+@param line : linea di interrupt su cui è presente l'interrupt pendente da gestire
+@param dev : device che ha causato l'interrupt pendente da gestire
+@return Ritorna il pcb bloccato sul semaforo del device il cui indirizzo è passato per parametro, se presente
+*/
 HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev)
 {
 	pcb_t *p;
@@ -74,9 +64,9 @@ HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev)
 }
 
 /**
-  * @brief Gestore degli Interrupts.
-  * @return void.
- */
+@brief Gestore degli Interrupts.
+@return void.
+*/
 void intHandler()
 {
 	int cause_int;
