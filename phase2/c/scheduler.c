@@ -12,12 +12,12 @@ void scheduler()
 	if (currentProcess)
 	{		
 		/* Set process start time in the CPU */
-		currentProcess->p_cpu_time += (BUS_REG_TOD_LO - processTOD);
-		processTOD = BUS_REG_TOD_LO;
+		currentProcess->p_cpu_time += (getTODLO - processTOD);
+		processTOD = getTODLO;
 		
 		/* Update elapsed time of the pseudo-clock tick */
-		timerTick += (BUS_REG_TOD_LO - startTimerTick);
-		startTimerTick = BUS_REG_TOD_LO;
+		timerTick += (getTODLO - startTimerTick);
+		startTimerTick = getTODLO;
 		
 		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
 		setTIMER(MIN((SCHED_TIME_SLICE - currentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - timerTick)));
@@ -41,8 +41,8 @@ void scheduler()
 			if (processCount > 0 && softBlockCount > 0)
 			{
 				/* Unmasked interrupts on */
-				setSTATUS(STATUS_ALL_INT_ENABLE(STATUS_ENABLE_INT(getSTATUS())));
-				while (TRUE);
+				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
+				WAIT();
 			}
 			PANIC(); /* Anomaly */
 		}
@@ -52,12 +52,12 @@ void scheduler()
 			PANIC(); /* Anomaly */
 		
 		/* Compute elapsed time from the pseudo-clock tick start */
-		timerTick += BUS_REG_TOD_LO - startTimerTick;
-		startTimerTick = BUS_REG_TOD_LO;
+		timerTick += getTODLO - startTimerTick;
+		startTimerTick = getTODLO;
 		
 		/* Set process start time in the CPU */
 		currentProcess->p_cpu_time = 0;
-		processTOD = BUS_REG_TOD_LO;
+		processTOD = getTODLO;
 		
 		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
 		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - timerTick)));

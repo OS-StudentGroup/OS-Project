@@ -8,10 +8,11 @@
 */
 
 #include "../../phase1/h/pcb.h"
-#include "exceptions.h"
 #include "initial.h"
+#include "exceptions.h"
 #include "scheduler.h"
-#include "libuarm.h"
+#include "../../include/libuarm.h"
+#include "../../include/const.h"
 
 /* Old Area dell'Interrupt */
 HIDDEN state_t *int_old_area = (state_t *) INT_OLDAREA;

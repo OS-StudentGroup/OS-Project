@@ -2,8 +2,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-// temporary definition for phase1
-typedef void *state_t;
+#include "base.h"
+#include "const.h"
+#include "uARMconst.h"
+#include "uARMtypes.h"
 
 // Process Control Block type
 typedef struct pcb_t
@@ -21,7 +23,7 @@ typedef struct pcb_t
 	state_t p_s;					/**< Processor state */
 	S32 *p_semAdd;					/**< Pointer to semaphore on which process blocked */
 	int p_pid;						/**< Process id */
-	cpu_t p_cpu_time;				/**< Process CPU time */
+	cpu_t p_cpu_time;					/**< Process CPU time */
 	int ExStVec[MAX_STATE_VECTOR];	/**< Exception State Vector */
 	state_t *tlbState_old;			/**< TLB old area */
 	state_t *tlbState_new;			/**< TLB new area */
@@ -38,5 +40,13 @@ typedef struct pcb_pid_t
 	int pid;		/**< Process PID */
 	pcb_t *pcb;		/**< Pointer to PCB */
 } pcb_pid_t;
+
+// Semaphore Descriptor type
+typedef struct semd_t
+{
+	struct semd_t *s_next; 		// next element on the ASL
+	int *s_semAdd; 				// pointer to the semaphore
+	pcb_t *s_procQ; 			// tail pointer to a process queue
+} semd_t;
 
 #endif

@@ -11,7 +11,8 @@
 #include "exceptions.h"
 #include "initial.h"
 #include "interrupts.h"
-#include "libumps.h"
+#include "../../include/libuarm.h"
+#include "../../include/const.h"
 
 /**
 @brief Process scheduler.

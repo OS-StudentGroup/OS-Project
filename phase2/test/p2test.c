@@ -55,11 +55,11 @@ modifiche rispetto al p2test.0.1.c
 --------------------------------
 */
 
-#include <uARMconst.h>
-#include <uARMtypes.h>
-#include <types10.h>
-#include <base.h>
-#include <libuarm.h>
+#include "../../include/uARMconst.h"
+#include "../../include/uARMtypes.h"
+#include "../../include/types.h"
+#include "../../include/base.h"
+#include "../../include/libuarm.h"
 
 typedef unsigned int devregtr;
 

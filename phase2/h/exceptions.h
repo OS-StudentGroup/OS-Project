@@ -8,10 +8,12 @@
 */
 
 #include "../../phase1/h/pcb.h"
+#include "../../phase1/h/asl.h"
 #include "initial.h"
 #include "interrupts.h"
 #include "scheduler.h"
-#include "libuarm.h"
+#include "../../include/libuarm.h"
+#include "../../include/const.h"
 
 /**
 @brief Save current processor state into a new state.

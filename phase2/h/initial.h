@@ -10,8 +10,9 @@
 #include "../../phase1/h/pcb.h"
 #include "exceptions.h"
 #include "scheduler.h"
-#include "libumps.h"
 #include "interrupts.h"
+#include "../../include/libuarm.h"
+#include "../../include/const.h"
 
 /* Global variables declarations */
 struct list_head readyQueue;							/**< Process ready queue */

@@ -4,8 +4,8 @@
 
 // Dependencies
 #include "../e/pcb.e"
-#include "../h/const.h"
-#include "../h/types.h"
+#include "../../include/const.h"
+#include "../../include/types.h"
 
 // External function declarations
 EXTERN void initASL(void);

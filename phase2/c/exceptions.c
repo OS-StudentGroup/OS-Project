@@ -5,17 +5,7 @@
  */
 
 /* Inclusioni phase1 */
-#include <asl.e>
-#include <pcb.e>
-
-/* Inclusioni phase2 */
-#include <exceptions.e>
-#include <initial.e>
-#include <interrupts.e>
-#include <scheduler.e>
-
-/* Inclusioni uMPS */
-#include <libumps.e>
+#include "../h/exceptions.h"
 
 /* Old Area delle Syscall/BP - TLB - Program Trap */
 HIDDEN state_t *sysBp_old = (state_t *) SYSBK_OLDAREA;
@@ -269,10 +259,10 @@ int createProcess(state_t *statep)
 }
 
 /**
-  * @brief (SYS2) Termina un processo passato per parametro (volendo anche se stesso) e tutta la sua progenie.
-  * @param pid : identificativo del processo da terminare.
-  * @return Restituisce 0 nel caso il processo e la sua progenie vengano terminati, altrimenti -1 in caso di errore.
- */
+@brief (SYS2) Terminate a process and all his progeny.
+@param pid Process Id.
+@return 0 in case of success; -1 in case of error.
+*/
 int terminateProcess(int pid)
 {
 	int i;
@@ -283,7 +273,7 @@ int terminateProcess(int pid)
 	isSuicide = FALSE;
 
 	/* Se è un caso di suicidio, reimposta il pid e aggiorna la flag */
-	if((pid == -1) || (currentProcess->p_pid == pid))
+	if ((pid == -1) || (currentProcess->p_pid == pid))
 	{
 		pid = currentProcess->p_pid;
 		isSuicide = TRUE;
@@ -397,8 +387,8 @@ int getPid()
 cpu_t getCPUTime()
 {
 	/* Aggiorna il tempo di vita del processo sulla CPU */
-	currentProcess->p_cpu_time += (GET_TODLOW - processTOD);
-	processTOD = GET_TODLOW;
+	currentProcess->p_cpu_time += (getTODLO - processTOD);
+	processTOD = getTODLO;
 
 	return currentProcess->p_cpu_time;
 }
