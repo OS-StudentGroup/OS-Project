@@ -115,7 +115,7 @@ void sysBpHandler()
 
 					ris = terminateProcess(-1);
 					if (currentProcess)
-						currentProcess->p_s.v1 = ris;
+						currentProcess->p_state.v1 = ris;
 					scheduler();
 				}
 				/* Save SysBP Old Area in the current process */
@@ -140,12 +140,12 @@ void sysBpHandler()
 			switch (sysBp_old->a1)
 			{
 				case CREATEPROCESS:
-					currentProcess->p_s.v1 = createProcess((state_t *) arg1);
+					currentProcess->p_state.v1 = createProcess((state_t *) arg1);
 					break;
 				case TERMINATEPROCESS:
 					ris = terminateProcess((int) arg1);
 					if (currentProcess)
-						currentProcess->p_s.v1 = ris;
+						currentProcess->p_state.v1 = ris;
 					break;
 				case VERHOGEN:
 					verhogen((int *) arg1);
@@ -154,19 +154,19 @@ void sysBpHandler()
 					passeren((int *)  arg1);
 					break;
 				case GETPID:
-					currentProcess->p_s.v1 = getPid();
+					currentProcess->p_state.v1 = getPid();
 					break;
 				case GETCPUTIME:
-					currentProcess->p_s.v1 = getCPUTime();
+					currentProcess->p_state.v1 = getCPUTime();
 					break;
 				case WAITCLOCK:
 					waitClock();
 					break;
 				case WAITIO:
-					currentProcess->p_s.v1 = waitIO((int) arg1, (int) arg2, (int) arg3);
+					currentProcess->p_state.v1 = waitIO((int) arg1, (int) arg2, (int) arg3);
 					break;
 				case GETPPID:
-					currentProcess->p_s.v1 = getPpid();
+					currentProcess->p_state.v1 = getPpid();
 					break;
 				case SPECTLBVECT:
 					specTLBvect((state_t *) arg1, (state_t *)arg2);
@@ -185,7 +185,7 @@ void sysBpHandler()
 
 						ris = terminateProcess(-1);
 						if (currentProcess)
-							currentProcess->p_s.v1 = ris;
+							currentProcess->p_state.v1 = ris;
 					}
 					/* Otherwise save SysBP Old Area in the current process */
 					else
@@ -207,7 +207,7 @@ void sysBpHandler()
 
 			ris = terminateProcess(-1);
 			if (currentProcess)
-				currentProcess->p_s.v1 = ris;
+				currentProcess->p_state.v1 = ris;
 			scheduler();
 		}
 		/* Otherwise save SysBP Old Area in the current process */
@@ -237,7 +237,7 @@ int createProcess(state_t *statep)
 		return -1;
 
 	/* Load processor state into process state */
-	saveCurrentState(statep, &(p->p_s));
+	saveCurrentState(statep, &(p->p_state));
 
 	/* Update process and PID counter */
 	processCount++;
@@ -474,7 +474,7 @@ void specTLBvect(state_t *oldp, state_t *newp)
 	if(currentProcess->ExStVec[ESV_TLB] > 1)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_state.reg_v0 = ris;
 	}
 	else
 	{
@@ -500,7 +500,7 @@ void specPGMvect(state_t *oldp, state_t *newp)
 	if(currentProcess->ExStVec[ESV_PGMTRAP] > 1)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_state.reg_v0 = ris;
 	}
 	else
 	{
@@ -526,7 +526,7 @@ void specSYSvect(state_t *oldp, state_t *newp)
 	if(currentProcess->ExStVec[ESV_SYSBP] > 1)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_state.reg_v0 = ris;
 	}
 	else
 	{
@@ -546,13 +546,13 @@ void tlbHandler()
 
 	/* Se un processo è attualmente eseguito dal processore, la TLB Old Area viene caricata sul processo corrente */
 	if(currentProcess != NULL)
-		saveCurrentState(TLB_old, &(currentProcess->p_s));
+		saveCurrentState(TLB_old, &(currentProcess->p_state));
 
 	/* Se non è già stata eseguita la SYS10, viene terminato il processo corrente */
 	if(currentProcess->ExStVec[ESV_TLB] == 0)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_state.reg_v0 = ris;
 		scheduler();
 	}
 	/* Altrimenti viene salvata la TLB Old Area all'interno del processo corrente */
@@ -574,14 +574,14 @@ void pgmTrapHandler()
 	/* Se un processo è attualmente eseguito dal processore, la pgmTrap Old Area viene caricata sul processo corrente */
 	if(currentProcess != NULL)
 	{
-		saveCurrentState(pgmTrap_old, &(currentProcess->p_s));
+		saveCurrentState(pgmTrap_old, &(currentProcess->p_state));
 	}
 
 	/* Se non è già stata eseguita la SYS11, viene terminato il processo corrente */
 	if(currentProcess->ExStVec[ESV_PGMTRAP] == 0)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_state.reg_v0 = ris;
 		scheduler();
 	}
 	/* Altrimenti viene salvata la pgmTrap Old Area all'interno del processo corrente */

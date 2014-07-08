@@ -79,7 +79,7 @@ void main(void)
 	init->p_s.cpsr =  STATUS_SYS_MODE | STATUS_ALL_INT_ENABLE(init->p_s.cpsr);
 	
 	/* Initialize Stack Pointer */
-	init->p_s.sp = RAM_TOP - FRAME_SIZE;
+	init->p_s.sp = RAMTOP - FRAME_SIZE;
 	
 	/* Initialize Program Counter */
 	init->p_s.pc = (memaddr) test;

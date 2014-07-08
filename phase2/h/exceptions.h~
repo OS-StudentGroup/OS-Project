@@ -14,10 +14,6 @@
 
 void sysBpHandler();
 
-void tlbHandler();
-
-void pgmTrapHandler();
-
 
 /**
 @brief Save current processor state into a new state.

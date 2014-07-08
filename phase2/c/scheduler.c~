@@ -23,7 +23,7 @@ void scheduler()
 		setTIMER(MIN((SCHED_TIME_SLICE - currentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - timerTick)));
 
 		/* Load the executing process state */
-		LDST(&(currentProcess->p_s));
+		LDST(&(currentProcess->p_state));
 	}
 	/* [Case 2] No process is running */
 	else
@@ -63,6 +63,6 @@ void scheduler()
 		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - timerTick)));
 		
 		/* Load the processor state for execution */
-		LDST(&(currentProcess->p_s));
+		LDST(&(currentProcess->p_state));
 	}
 }

@@ -1,52 +1,34 @@
-#ifndef INTERRUPTS_H
-#define INTERRUPTS_H
-
 /**
-@file interrupts.h
+@file interrupts.c
 @author
-@note This module implements the device interrupt exception handler. This module will process all the device interrupts, including Interval Timer interrupts, converting device interrupts into V operations on the appropriate semaphores.
+@note Interrupt Exception Handling.
 */
 
-//#include "../../phase1/h/pcb.h"
+#include "../h/interrupts.h"
 
-#include "../scheduler.e"
+HIDDEN int recognizeDev(int bitMapDevice)
+{
+	switch (bitMapDevice)
+	{
+	case bitMapDevice | DEV_CHECK_ADDRESS_0:
+		return DEV_CHECK_LINE_0;
+	case bitMapDevice | DEV_CHECK_ADDRESS_1:
+		return DEV_CHECK_LINE_1;
+	case bitMapDevice | DEV_CHECK_ADDRESS_2:
+		return DEV_CHECK_LINE_2;
+	case bitMapDevice | DEV_CHECK_ADDRESS_3:
+		return DEV_CHECK_LINE_3;
+	case bitMapDevice | DEV_CHECK_ADDRESS_4:
+		return DEV_CHECK_LINE_4;
+	case bitMapDevice | DEV_CHECK_ADDRESS_5:
+		return DEV_CHECK_LINE_5;
+	case bitMapDevice | DEV_CHECK_ADDRESS_6:
+		return DEV_CHECK_LINE_6;
+	default:
+		return DEV_CHECK_LINE_7;
+	}
+}
 
-
-
-void intHandler();
-HIDDEN int recognizeDev(int bitMapDevice);
-HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev);
-
-
-/* Old Area dell'Interrupt */
-HIDDEN state_t *int_old_area = (state_t *) INT_OLDAREA;
-
-/* Indirizzo base del device */
-HIDDEN memaddr devAddrBase;
-
-/* Variabili per accedere ai campi status e command di device o terminali */
-HIDDEN int *rStatus, *tStatus;
-HIDDEN int *rCommand, *tCommand;
-HIDDEN int recvStatByte, transmStatByte;
-HIDDEN int *status, *command;
-
-/**
-@brief Riconosce il device che ha un interrupt pendente sulla bitmap passata per parametro.
-@param bitMapDevice : bitmap degli interrupt pendenti per linea di interrupt.
-@return Ritorna l'indice del device che ha un interrupt pendente su quella bitmap.
-*/
-HIDDEN int recognizeDev(int bitMapDevice);
-
-/**
-@brief Sblocca il processo sul semaforo del device che ha causato l'interrupt.
-Se non c'è nessun processo da bloccare si aggiorna la matrice degli status word dei device,
-altrimenti si inserisce nella readyQueue.
-@param *semaddr : indirizzo del semaforo associato al device che ha causato l'interrupt
-@param status : campo del device corrispondente al suo stato
-@param line : linea di interrupt su cui è presente l'interrupt pendente da gestire
-@param dev : device che ha causato l'interrupt pendente da gestire
-@return Ritorna il pcb bloccato sul semaforo del device il cui indirizzo è passato per parametro, se presente
-*/
 HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev)
 {
 	pcb_t *p;
@@ -68,10 +50,6 @@ HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev)
 	return p;
 }
 
-/**
-@brief Gestore degli Interrupts.
-@return void.
-*/
 void intHandler()
 {
 	int cause_int;
@@ -287,5 +265,3 @@ void intHandler()
 	
 	scheduler();
 }
-
-#endif

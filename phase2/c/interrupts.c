@@ -4,7 +4,7 @@
 @note Interrupt Exception Handling.
 */
 
-#include "../h/interrupts.h"
+#include "../e/interrupts.e"
 
 HIDDEN int recognizeDev(int bitMapDevice)
 {

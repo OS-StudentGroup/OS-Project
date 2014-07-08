@@ -16,13 +16,6 @@
 #define IS_ON_DEV 1
 #define IS_ON_PSEUDO 2
 #define IS_ON_SEM 3
-
-/* Status Word Table */
-#define STATUS_WORD_ROWS 6
-#define STATUS_WORD_COLS 8
-
-
-
 /*****************************************************/
 /* max number of overall concurrent processes */
 #define MAXPROC 	20

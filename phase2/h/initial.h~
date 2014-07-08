@@ -12,8 +12,8 @@
 #include "../../include/const.h"
 #include "../../include/arch.h"
 #include "../../include/uARMconst.h"
-#include "../e/exceptions.e"
-#include "../e/interrupts.e"
+#include "../exceptions.e"
+#include "../interrupts.e"
 
 
 /* Global variables declarations */
