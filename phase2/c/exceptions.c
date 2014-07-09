@@ -4,8 +4,13 @@
  *  @note SYS/Bp Exception Handling
  */
 
-/* Inclusioni phase1 */
+#include "../../phase1/h/asl.h"
+#include "../../phase1/e/pcb.e"
 #include "../e/exceptions.e"
+#include "../e/initial.e"
+#include "../e/interrupts.e"
+#include "../e/scheduler.e"
+#include "../../include/libuarm.h"
 
 /* Old Area delle Syscall/BP - TLB - Program Trap */
 HIDDEN state_t *sysBp_old = (state_t *) SYSBK_OLDAREA;
@@ -266,115 +271,114 @@ int createProcess(state_t *statep)
 int terminateProcess(int pid)
 {
 	int i;
-	pcb_t *pToKill, *pChild, *pSib;
+	pcb_t *process, *progeny, *pSib;
 	int isSuicide;
 
-	pToKill = NULL;
+	process = NULL;
 	isSuicide = FALSE;
 
-	/* Se è un caso di suicidio, reimposta il pid e aggiorna la flag */
-	if ((pid == -1) || (currentProcess->p_pid == pid))
+	/* Suicide case */
+	if (pid == -1 || currentProcess->p_pid == pid)
 	{
 		pid = currentProcess->p_pid;
 		isSuicide = TRUE;
 	}
 
-	/* Cerca nella tabella dei pcb usati quello da rimuovere */
-	for(i=0; i<MAXPROC; i++)
+	/* Search process in pcbused_table */
+	for (i = 0; i < MAXPROC && pid != pcbused_table[i].pid; i++);
+
+	/* If process does not exist */
+	if (i == MAXPROC)
+		return -1;
+
+	process = pcbused_table[i].pcb;
+
+	/* [Case 1] Process blocked on a device semaphore */
+	if (process->p_isOnDev == IS_ON_SEM)
 	{
-		if(pid == pcbused_table[i].pid)
-		{
-			pToKill = pcbused_table[i].pcb;
-			break;
-		}
+		if (!process->p_semAdd)
+			PANIC(); /* Anomaly */
+
+		/* Update semaphore value */
+		(*process->p_semAdd)++;
+		process = outBlocked(process);
+	}
+	/* [Case 2] Process blocked on the pseudo-clock semaphore */
+	else if (process->p_isOnDev == IS_ON_PSEUDO)
+		pseudo_clock++;
+
+	/* If process has a progeny */
+	while (!emptyChild(process))
+	{
+		progeny = removeChild(process);
+
+		if ((terminateProcess(progeny->p_pid)) == -1)
+			return -1; /* Anomaly */
 	}
 
-	/* Se si cerca di uccidere un processo che non esiste, restituisce -1 */
-	if(pToKill == NULL) return -1;
+	/* Kill process */
+	if (!outChild(process))
+		return -1;
 
-	/* Se il processo è bloccato su un semaforo esterno, incrementa questo ultimo */
-	if(pToKill->p_isOnDev == IS_ON_SEM)
-	{
-		/* Caso Anomalo */
-		if(pToKill->p_semAdd == NULL) PANIC();
+	/* Update pcbused_table */
+	pcbused_table[i].pid = 0;
+	pcbused_table[i].pcb = NULL;
 
-		/* Incrementa il semaforo e aggiorna questo ultimo se vuoto */
-		(*pToKill->p_semAdd)++;
-		pToKill = outBlocked(pToKill);
-	}
-	/* Se invece è bloccato sul semaforo dello pseudo-clock, si incrementa questo ultimo */
-	else if(pToKill->p_isOnDev == IS_ON_PSEUDO) pseudo_clock++;
+	freePcb(process);
 
-	/* Se il processo da uccidere ha dei figli, li uccide ricorsivamente */
-	while(emptyChild(pToKill) == FALSE)
-	{
-		pChild = container_of(pToKill->p_child.prev, pcb_t, p_sib);
-
-		if((terminateProcess(pChild->p_pid)) == -1) return -1;
-	}
-
-	/* Uccide il processo */
-	if((pToKill = outChild(pToKill)) == NULL) return -1;
-	else
-	{
-		/* Aggiorna la tabella dei pcb usati */
-		pcbused_table[i].pid = 0;
-		pcbused_table[i].pcb = NULL;
-
-		freePcb(pToKill);
-	}
-
-	if(isSuicide == TRUE) currentProcess = NULL;
+	if (isSuicide == TRUE)
+		currentProcess = NULL;
 
 	processCount--;
-
 	return 0;
 }
 
 /**
-  * @brief (SYS3) Effettua una V su un semaforo.
-  * @param semaddr : indirizzo del semaforo.
-  * @return void.
- */
+@brief (SYS3) Perform a V operation on a semaphore.
+@param semaddr Semaphore address.
+@return Void.
+*/
 void verhogen(int *semaddr)
 {
-	pcb_t *p;
+	pcb_t *process;
 
 	(*semaddr)++;
 
-	p = removeBlocked((S32 *) semaddr);
-	/* Se è stato sbloccato un processo da un semaforo esterno */
-	if (p != NULL)
+	/* If ASL was not empty */
+	if ((process = removeBlocked(semaddr)))
 	{
-		/* Viene inserito nella readyQueue e viene aggiornata la flag isOnDev a FALSE */
-		insertProcQ(&readyQueue, p);
-		p->p_isOnDev = FALSE;
+		/* Insert process into the ready queue */
+		insertProcQ(&readyQueue, process);
+
+		/* Update isOnDev flag */
+		process->p_isOnDev = FALSE;
 	}
 }
 
 /**
-  * @brief (SYS4) Effettua una P su un semaforo.
-  * @param semaddr : indirizzo del semaforo.
-  * @return void.
- */
+@brief (SYS4) Perform a P operation on a semaphore.
+@param semaddr Semaphore address.
+@return Void.
+*/
 void passeren(int *semaddr)
 {
 	(*semaddr)--;
 
-	/* Se un processo viene sospeso ... */
-	if((*semaddr) < 0)
+	/* If semaphore value becomes negative */
+	if ((*semaddr) < 0)
 	{
-		/* Inserisce il processo corrente in coda al semaforo specificato */
-		if(insertBlocked((S32 *) semaddr, currentProcess)) PANIC();
+		/* Add process to the semaphore queue */
+		if (insertBlocked(semaddr, currentProcess))
+			PANIC(); /* Anomaly */
 		currentProcess->p_isOnDev = IS_ON_SEM;
 		currentProcess = NULL;
 	}
 }
 
 /**
-  * @brief (SYS5) Restituisce l'identificativo del processo chiamante.
-  * @return PID del processo chiamante.
- */
+@brief (SYS5) Restituisce l'identificativo del processo chiamante.
+@return PID del processo chiamante.
+*/
 int getPid()
 {
 	return currentProcess->p_pid;
@@ -414,38 +418,38 @@ void waitClock()
 }
 
 /**
-  * @brief (SYS8) Effettua una P sul semaforo del device specificato.
-  * @param intlNo : ennesima linea di interrupt.
-  * @param dnum : numero del device.
-  * @param waitForTermRead : TRUE se aspetta una lettura da terminale. FALSE altrimenti.
-  * @return Restituisce lo Status Word del device specificato.
- */
+@brief (SYS8) Perform a P operation on a device semaphore.
+@param intlNo Interrupt line.
+@param dnum Device number.
+@param waitForTermRead : TRUE in case of reading; FALSE else.
+@return Return the device's Status Word.
+*/
 unsigned int waitIO(int intlNo, int dnum, int waitForTermRead)
 {
-	switch(intlNo)
+	switch (intlNo)
 	{
 		case INT_DISK:
 			passerenIO(&sem.disk[dnum]);
-		break;
+			break;
 		case INT_TAPE:
 			passerenIO(&sem.tape[dnum]);
-		break;
+			break;
 		case INT_UNUSED:
 			passerenIO(&sem.network[dnum]);
-		break;
+			break;
 		case INT_PRINTER:
 			passerenIO(&sem.printer[dnum]);
-		break;
+			break;
 		case INT_TERMINAL:
-			if(waitForTermRead)
+			if (waitForTermRead)
 				passerenIO(&sem.terminalR[dnum]);
 			else
 				passerenIO(&sem.terminalT[dnum]);
-		break;
+			break;
 		default: PANIC();
 	}
 
-	return statusWordDev[intlNo - DEV_DIFF + waitForTermRead][dnum];
+	return statusWordDev[intlNo - 3 + waitForTermRead][dnum];
 }
 
 /**
@@ -474,7 +478,7 @@ void specTLBvect(state_t *oldp, state_t *newp)
 	if(currentProcess->ExStVec[ESV_TLB] > 1)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
 	}
 	else
 	{
@@ -500,7 +504,7 @@ void specPGMvect(state_t *oldp, state_t *newp)
 	if(currentProcess->ExStVec[ESV_PGMTRAP] > 1)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
 	}
 	else
 	{
@@ -526,7 +530,7 @@ void specSYSvect(state_t *oldp, state_t *newp)
 	if(currentProcess->ExStVec[ESV_SYSBP] > 1)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
 	}
 	else
 	{
@@ -552,7 +556,7 @@ void tlbHandler()
 	if(currentProcess->ExStVec[ESV_TLB] == 0)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
 		scheduler();
 	}
 	/* Altrimenti viene salvata la TLB Old Area all'interno del processo corrente */
@@ -564,27 +568,28 @@ void tlbHandler()
 }
 
 /**
-  * @brief Gestore d'eccezione Program Trap.
-  * @return void.
- */
+@brief Program Trap handler.
+@return Void.
+*/
 void pgmTrapHandler()
 {
 	int ris;
 
-	/* Se un processo è attualmente eseguito dal processore, la pgmTrap Old Area viene caricata sul processo corrente */
-	if(currentProcess != NULL)
-	{
+	/* If a process is executing, load pgmTrap Old Area on the current process */
+	if (currentProcess)
 		saveCurrentState(pgmTrap_old, &(currentProcess->p_s));
-	}
 
-	/* Se non è già stata eseguita la SYS11, viene terminato il processo corrente */
-	if(currentProcess->ExStVec[ESV_PGMTRAP] == 0)
+	/* If the offending process has NOT issued a SYS5, then the PgmTrap exception
+	 * should be handled like a SYS2. */
+	if (currentProcess->ExStVec[ESV_PGMTRAP] == 0)
 	{
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.reg_v0 = ris;
+		/* Anomaly */
+		if (currentProcess)
+			currentProcess->p_s.v1 = ris;
 		scheduler();
 	}
-	/* Altrimenti viene salvata la pgmTrap Old Area all'interno del processo corrente */
+	/* Pass up the handling of the PgmTrap */
 	else
 	{
 		saveCurrentState(pgmTrap_old, currentProcess->pgmtrapState_old);

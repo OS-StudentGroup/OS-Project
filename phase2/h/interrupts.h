@@ -7,22 +7,11 @@
 @note This module implements the device interrupt exception handler. This module will process all the device interrupts, including Interval Timer interrupts, converting device interrupts into V operations on the appropriate semaphores.
 */
 
-//#include "../../phase1/h/pcb.h"
-
-#include "../scheduler.e"
-
-
+#include "../e/scheduler.e"
 
 void intHandler();
 HIDDEN int recognizeDev(int bitMapDevice);
 HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev);
-
-
-/* Old Area dell'Interrupt */
-HIDDEN state_t *int_old_area = (state_t *) INT_OLDAREA;
-
-/* Indirizzo base del device */
-HIDDEN memaddr devAddrBase;
 
 /* Variabili per accedere ai campi status e command di device o terminali */
 HIDDEN int *rStatus, *tStatus;

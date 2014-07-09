@@ -256,12 +256,9 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	{
 		output = outProcQ(&sem->s_next->s_procQ, p);
 
-		// [SubCase] ProcQ is now empty
+		// [SubCase] ProcQ is now empty, deallocate the semaphore
 		if (emptyProcQ(sem->s_next->s_procQ))
-		{
-			// Deallocate the semaphore
 			freeSemaphore(sem);
-		}
 	}
 	// [Case 2] semAdd is not in ASL
 	else
