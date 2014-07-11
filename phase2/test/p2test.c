@@ -193,7 +193,7 @@ void print(char *msg) {
 void test() {	
 
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
-
+	tprint("starting\n");
 	if (testsem != 1) { print("error: p1 v(testsem) with no effects\n"); PANIC(); }
 
 	print("p1 v(testsem)\n");

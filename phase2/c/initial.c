@@ -3,7 +3,8 @@
 @author
 @note This module implements main() and exports the nucleus’s global variables. (e.g. Process Count, device semaphores, etc.)
  */
-#include "../../phase1/h/pcb.h"
+#include "../../phase1/h/asl.h"
+#include "../../phase1/e/pcb.e"
 #include "../../include/libuarm.h"
 #include "../../include/const.h"
 #include "../../include/arch.h"
@@ -34,7 +35,7 @@ void main(void)
 {
 	pcb_t *init;
 	int i;
-
+	//tprint("fatto init\n\n");
 	/* Populate the 4 processor state areas in the ROM Reserved Frame */
 	populateArea(SYSBK_NEWAREA, (memaddr) sysBpHandler);		/* SYS/BP Exception Handling */
 	populateArea(PGMTRAP_NEWAREA, (memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
@@ -43,7 +44,7 @@ void main(void)
 
 	/* Initialize data structures */
 	initPcbs();
-	initSemd();
+	initASL();
 	
 	/* Initialize nucleus maintained variables */
 	mkEmptyProcQ();

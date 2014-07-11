@@ -5,12 +5,16 @@
 */
 
 #include "../e/scheduler.e"
+#include "../h/initial.h"
+#include "../../phase1/e/pcb.e"
 
 void scheduler()
 {
+	
 	/* [Case 1] A process is running */
 	if (currentProcess)
-	{		
+	{
+			
 		/* Set process start time in the CPU */
 		currentProcess->p_cpu_time += (getTODLO - processTOD);
 		processTOD = getTODLO;
@@ -21,19 +25,22 @@ void scheduler()
 		
 		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
 		setTIMER(MIN((SCHED_TIME_SLICE - currentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - timerTick)));
-
+		
 		/* Load the executing process state */
 		LDST(&(currentProcess->p_s));
 	}
 	/* [Case 2] No process is running */
 	else
 	{
+		
 		/* If the Ready Queue is empty */
 		if (emptyProcQ(&readyQueue))
 		{
 			/* No more processes */
-			if (processCount == 0)
+			if (processCount == 0){
+								
 				HALT();
+			}
 			/* Deadlock */
 			if (processCount > 0 && softBlockCount == 0)
 				PANIC();
@@ -42,8 +49,10 @@ void scheduler()
 			{
 				/* Unmasked interrupts on */
 				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
+				//tprint("fermo!");
 				WAIT();
 			}
+			
 			PANIC(); /* Anomaly */
 		}
 		

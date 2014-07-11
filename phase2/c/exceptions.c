@@ -7,7 +7,7 @@
 #include "../../phase1/h/asl.h"
 #include "../../phase1/e/pcb.e"
 #include "../e/exceptions.e"
-#include "../e/initial.e"
+#include "../h/initial.h"
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 #include "../../include/libuarm.h"
@@ -85,18 +85,23 @@ void sysBpHandler()
 	currentProcess->p_s.pc += 4;
 
 	/* Get Mode bit of the sysBp Old Area */
-	kuMode = ((sysBp_old->cpsr) & STATUS_SYS_MODE) >> 0x3;
+	kuMode = ((sysBp_old->cpsr) & STATUS_SYS_MODE) >> 0x5;
+	
+/*
 	if ((sysBp_old->cpsr << 27) == 0x1F)
 		tprint("System Mode");
 	else
 		tprint("No System Mode");
+
 	HALT();
+*/
 	/* Get exception type */
 	cause_excCode = setCAUSE(sysBp_old->CP15_Cause);
 
 	/* If it is a system call */
 	if (cause_excCode == EXC_SYSCALL)
 	{
+		//tprint("speriamo\n");
 		/* Case User Mode */
 		if (kuMode)
 		{
@@ -135,6 +140,7 @@ void sysBpHandler()
 		else
 		{
 			int ris;
+			//tprint("penetro\n");
 
 			/* Save SYSCALL parameters */
 			U32 arg1 = sysBp_old->a2;
@@ -341,7 +347,6 @@ int terminateProcess(int pid)
 void verhogen(int *semaddr)
 {
 	pcb_t *process;
-
 	(*semaddr)++;
 
 	/* If ASL was not empty */

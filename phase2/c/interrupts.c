@@ -4,10 +4,10 @@
 @note Interrupt Exception Handling.
 */
 
-#include "../../phase1/h/asl.h"
-#include "../../phase1/e/pcb.e"
+//#include "../../phase1/h/asl.h"
+#include "../../phase1/h/pcb.h"
 #include "../e/exceptions.e"
-#include "../e/initial.e"
+#include "../h/initial.h"
 #include "../e/interrupts.e"
 #include "../e/scheduler.e"
 #include "../../include/libuarm.h"
@@ -146,7 +146,7 @@ void intHandler()
 		}
 		/* Altre cause */
 		else
-			SET_IT(SCHED_PSEUDO_CLOCK - timerTick);
+			setTIMER(SCHED_PSEUDO_CLOCK - timerTick);
 	}
 	/* Se la causa dell'interrupt è la linea 3 */
 	else if(CAUSE_IP_GET(cause_int, INT_DISK))

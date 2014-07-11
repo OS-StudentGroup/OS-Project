@@ -13,7 +13,7 @@
 
 extern void test(void);
 
-extern struct list_head readyQueue;
+//extern struct list_head readyQueue;
 
 extern pcb_t *currentProcess;
 
@@ -23,6 +23,7 @@ extern U32 pidCount;
 
 extern U32 softBlockCount;
 
+/*
 extern struct {
 	int disk[8];
 	int tape[8];
@@ -31,7 +32,7 @@ extern struct {
 	int terminalR[8];
 	int terminalT[8];
 } sem;
-
+*/
 extern int pseudo_clock;
 
 extern cpu_t processTOD;
