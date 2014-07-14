@@ -156,15 +156,16 @@ void	p5sys(),p8root(),child1(),child2(),p8leaf();
 void	p9();
 
 /* a procedure to print on terminal 0 */
-void print(char *msg) {
-
+void print(char *msg)
+{
 	char * s = msg;
 	devregtr * base = (devregtr *) (TERM0ADDR);
 	devregtr status;
-	
+	//tprint("ddd");
 	SYSCALL(PASSEREN, (int)&term_mut, 0, 0);				/* get term_mut lock */
-	
-	while (*s != '\0') {
+	tprint("ccc");
+	while (*s != '\0')
+	{
 	  /* Put "transmit char" command+char in term0 register (3rd word). This 
 		   actually starts the operation on the device! */
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
@@ -190,10 +191,10 @@ void print(char *msg) {
 /*                                                                   */
 /*                 p1 -- the root process                            */
 /*                                                                   */
-void test() {	
-
+extern void test()
+{
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
-	tprint("starting\n");
+	print("starting\n");
 	if (testsem != 1) { print("error: p1 v(testsem) with no effects\n"); PANIC(); }
 
 	print("p1 v(testsem)\n");

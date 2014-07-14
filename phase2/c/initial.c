@@ -35,7 +35,7 @@ void main(void)
 {
 	pcb_t *init;
 	int i;
-	//tprint("fatto init\n\n");
+
 	/* Populate the 4 processor state areas in the ROM Reserved Frame */
 	populateArea(SYSBK_NEWAREA, (memaddr) sysBpHandler);		/* SYS/BP Exception Handling */
 	populateArea(PGMTRAP_NEWAREA, (memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
@@ -82,8 +82,8 @@ void main(void)
 	/* Initialize Stack Pointer */
 	init->p_s.sp = RAM_TOP - FRAME_SIZE;
 	
-	/* Initialize Program Counter */
-	init->p_s.pc = (memaddr) test;
+	/* Initialize Program Counter with the testing process */
+	init->p_s.pc = init->p_s.ip = (memaddr) test;
 	
 	/* Initialize Process Id */
 	pidCount++;
@@ -99,7 +99,7 @@ void main(void)
 	
 	/* Start timer */
 	startTimerTick = 0;
-	
+
 	/* Run scheduler */
 	scheduler();
 }

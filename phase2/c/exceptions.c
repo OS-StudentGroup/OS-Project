@@ -86,22 +86,13 @@ void sysBpHandler()
 
 	/* Get Mode bit of the sysBp Old Area */
 	kuMode = ((sysBp_old->cpsr) & STATUS_SYS_MODE) >> 0x5;
-	
-/*
-	if ((sysBp_old->cpsr << 27) == 0x1F)
-		tprint("System Mode");
-	else
-		tprint("No System Mode");
 
-	HALT();
-*/
 	/* Get exception type */
 	cause_excCode = setCAUSE(sysBp_old->CP15_Cause);
 
 	/* If it is a system call */
 	if (cause_excCode == EXC_SYSCALL)
 	{
-		//tprint("speriamo\n");
 		/* Case User Mode */
 		if (kuMode)
 		{
@@ -140,7 +131,6 @@ void sysBpHandler()
 		else
 		{
 			int ris;
-			//tprint("penetro\n");
 
 			/* Save SYSCALL parameters */
 			U32 arg1 = sysBp_old->a2;
@@ -205,9 +195,11 @@ void sysBpHandler()
 						LDST(currentProcess->sysbpState_new);
 					}
 			}
+
 			scheduler();
 		}
 	}
+
 	/* Case Breakpoint */
 	else if (cause_excCode == EXC_BREAKPOINT)
 	{
@@ -349,7 +341,7 @@ void verhogen(int *semaddr)
 	pcb_t *process;
 	(*semaddr)++;
 
-	/* If ASL was not empty */
+	/* If ASL is not empty */
 	if ((process = removeBlocked(semaddr)))
 	{
 		/* Insert process into the ready queue */
@@ -378,6 +370,8 @@ void passeren(int *semaddr)
 		currentProcess->p_isOnDev = IS_ON_SEM;
 		currentProcess = NULL;
 	}
+
+
 }
 
 /**
@@ -396,8 +390,8 @@ int getPid()
 cpu_t getCPUTime()
 {
 	/* Aggiorna il tempo di vita del processo sulla CPU */
-	currentProcess->p_cpu_time += (getTODLO - processTOD);
-	processTOD = getTODLO;
+	currentProcess->p_cpu_time += (getTODLO() - processTOD);
+	processTOD = getTODLO();
 
 	return currentProcess->p_cpu_time;
 }
