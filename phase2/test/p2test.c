@@ -161,19 +161,20 @@ void print(char *msg)
 	char * s = msg;
 	devregtr * base = (devregtr *) (TERM0ADDR);
 	devregtr status;
-	//tprint("ddd");
+
 	SYSCALL(PASSEREN, (int)&term_mut, 0, 0);				/* get term_mut lock */
-	tprint("ccc");
+
 	while (*s != '\0')
 	{
+/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 	  /* Put "transmit char" command+char in term0 register (3rd word). This 
 		   actually starts the operation on the device! */
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
 		
 		/* Wait for I/O completion (SYS8) */
 		status = SYSCALL(WAITIO, INT_TERMINAL, 0, FALSE);
-
-/*		PANIC(); */
+/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+		PANIC();
 		
 		if ((status & TERMSTATMASK) != TRANSM)
 			PANIC();
@@ -193,8 +194,8 @@ void print(char *msg)
 /*                                                                   */
 extern void test()
 {
-	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
-	print("starting\n");
+	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);
+	print("12");
 	if (testsem != 1) { print("error: p1 v(testsem) with no effects\n"); PANIC(); }
 
 	print("p1 v(testsem)\n");

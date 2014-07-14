@@ -10,7 +10,6 @@
 
 void scheduler()
 {
-	/* tprint("Scheduler is running...\n"); */
 	/* [Case 1] A process is running */
 	if (currentProcess)
 	{
@@ -32,7 +31,6 @@ void scheduler()
 	/* [Case 2] No process is running */
 	else
 	{
-		/* tprint("Ready Queue is empty...\n"); */
 		/* If the Ready Queue is empty */
 		if (emptyProcQ(readyQueue))
 		{
@@ -45,9 +43,11 @@ void scheduler()
 			/* Wait state */
 			if (processCount > 0 && softBlockCount > 0)
 			{
+				/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! /*
 				/* Unmasked interrupts on */
-				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
-				WAIT();
+				setSTATUS(STATUS_ALL_INT_DISABLE(getSTATUS()));
+				while (TRUE);
+				/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! /*
 			}
 			PANIC(); /* Anomaly */
 		}

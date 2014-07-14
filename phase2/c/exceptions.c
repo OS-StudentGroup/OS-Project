@@ -58,10 +58,11 @@ HIDDEN void passerenIO(int *semaddr)
 {
 	(*semaddr)--;
 
-	if((*semaddr) < 0)
+	if ((*semaddr) < 0)
 	{
-		/* Inserisce il processo corrente in coda al semaforo specificato */
-		if(insertBlocked((S32 *) semaddr, currentProcess)) PANIC(); /* PANIC se sono finiti i descrittori dei semafori */
+		/* Insert the current process in the given semaphore queue */
+		if (insertBlocked(semaddr, currentProcess))
+			PANIC(); /* Anomaly */
 		currentProcess->p_isOnDev = IS_ON_DEV;
 		currentProcess = NULL;
 		softBlockCount++;
@@ -195,7 +196,7 @@ void sysBpHandler()
 						LDST(currentProcess->sysbpState_new);
 					}
 			}
-
+			currentProcess->p_s.pc -= 4;
 			scheduler();
 		}
 	}
