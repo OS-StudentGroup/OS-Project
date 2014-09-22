@@ -13,13 +13,12 @@ void scheduler()
 	/* [Case 1] A process is running */
 	if (currentProcess)
 	{
-		/* tprint("A process is running...\n"); */
 		/* Set process start time in the CPU */
-		currentProcess->p_cpu_time += (getTODLO() - processTOD);
+		currentProcess->p_cpu_time += getTODLO() - processTOD;
 		processTOD = getTODLO();
 		
 		/* Update elapsed time of the pseudo-clock tick */
-		timerTick += (getTODLO() - startTimerTick);
+		timerTick += getTODLO() - startTimerTick;
 		startTimerTick = getTODLO();
 		
 		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
@@ -31,7 +30,7 @@ void scheduler()
 	/* [Case 2] No process is running */
 	else
 	{
-		/* If the Ready Queue is empty */
+		/* If Ready Queue is empty */
 		if (emptyProcQ(readyQueue))
 		{
 			/* No more processes */
@@ -43,11 +42,11 @@ void scheduler()
 			/* Wait state */
 			if (processCount > 0 && softBlockCount > 0)
 			{
-				/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! /*
-				/* Unmasked interrupts on */
-				setSTATUS(STATUS_ALL_INT_DISABLE(getSTATUS()));
-				while (TRUE);
-				/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! /*
+				/* Enable interrupts */
+				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
+
+				/* Put the machine in idle state waiting for interrupts */
+				WAIT();
 			}
 			PANIC(); /* Anomaly */
 		}
@@ -56,7 +55,7 @@ void scheduler()
 		if (!(currentProcess = removeProcQ(&readyQueue)))
 			PANIC(); /* Anomaly */
 		
-		/* Compute elapsed time from the pseudo-clock tick start */
+		/* Compute elapsed time from the pseudo-clock tick */
 		timerTick += getTODLO() - startTimerTick;
 		startTimerTick = getTODLO();
 		

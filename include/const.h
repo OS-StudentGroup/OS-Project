@@ -38,33 +38,22 @@
 #define NULL 		((void *)0)
 
 /* Device Check Address */
+
 #define DEV_CHECK_ADDRESS_0 0x40
 #define DEV_CHECK_ADDRESS_1 0x80
-#define DEV_CHECK_ADDRESS_2 0x100
-#define DEV_CHECK_ADDRESS_3 0x200
-#define DEV_CHECK_ADDRESS_4 0x400
-#define DEV_CHECK_ADDRESS_5 0x800
-#define DEV_CHECK_ADDRESS_6 0x1000
-#define DEV_CHECK_ADDRESS_7 0x2000
-
-/* Device Check Line */
-#define DEV_CHECK_LINE_0 0
-#define DEV_CHECK_LINE_1 1
-#define DEV_CHECK_LINE_2 2
-#define DEV_CHECK_LINE_3 3
-#define DEV_CHECK_LINE_4 4
-#define DEV_CHECK_LINE_5 5
-#define DEV_CHECK_LINE_6 6
-#define DEV_CHECK_LINE_7 7
+#define DEV_CHECK_ADDRESS_2 0x20
+#define DEV_CHECK_ADDRESS_3 0x6FE0
+#define DEV_CHECK_ADDRESS_4 0x6FE4
+#define DEV_CHECK_ADDRESS_5 0x6FE8
+#define DEV_CHECK_ADDRESS_6 0x6FEC
+#define DEV_CHECK_ADDRESS_7 0x6FF0
 
 /* Check Status Bit */
 #define CHECK_STATUS_BIT 0xFF
 
-#define DEV_DIFF 3
-
 #define WORD_SIZE 4
 
-#define PENDING_BITMAP_START 0x1000003c
+#define DEV_DIFF 3
 
 /* Check Bit */
 #define CHECK_FIFTH_BIT 	0x10
@@ -75,7 +64,6 @@
 #define DEV_REG_COMMAND       0x4
 #define DEV_REG_DATA0         0x8
 #define DEV_REG_DATA1         0xC
-
 
 #define TERM_R_STATUS     0x0
 #define TERM_R_COMMAND    0x4

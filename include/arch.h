@@ -33,7 +33,7 @@
  * Generalities
  */
 #define WORD_SIZE 4
-#define WS        WORD_SIZE
+#define WS WORD_SIZE
 
 #define MMIO_BASE 0x00000040
 #define RAM_BASE  0x00008000

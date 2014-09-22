@@ -19,8 +19,8 @@ HIDDEN state_t *pgmTrap_old = (state_t *) PGMTRAP_OLDAREA;
 
 /**
 @brief Save current state in a new state.
-@param current Current state.
-@param new New state.
+@param currentState Current state.
+@param newState New state.
 @return Void.
 */
 void saveCurrentState(state_t *currentState, state_t *newState)
@@ -56,16 +56,18 @@ void saveCurrentState(state_t *currentState, state_t *newState)
 */
 HIDDEN void passerenIO(int *semaddr)
 {
-	(*semaddr)--;
-
-	if ((*semaddr) < 0)
+	if (--(*semaddr) < 0)
 	{
-		/* Insert the current process in the given semaphore queue */
+		/* Block current process in the semaphore queue */
 		if (insertBlocked(semaddr, currentProcess))
 			PANIC(); /* Anomaly */
-		currentProcess->p_isOnDev = IS_ON_DEV;
+
+
+		currentProcess->p_isOnSem = IS_ON_DEV;
 		currentProcess = NULL;
 		softBlockCount++;
+
+		/* Run scheduler */
 		scheduler();
 	}
 }
@@ -76,108 +78,106 @@ HIDDEN void passerenIO(int *semaddr)
 */
 void sysBpHandler()
 {
-	int cause_excCode;
-	int kuMode;
+	int exceptionType, statusMode;
 
-	/* Save SYSBK_OLDAREA old state */
+	/* Save sysBp old area state */
 	saveCurrentState(sysBp_old, &(currentProcess->p_s));
 
 	/* Avoid endless loop of system calls */
 	currentProcess->p_s.pc += 4;
 
-	/* Get Mode bit of the sysBp Old Area */
-	kuMode = ((sysBp_old->cpsr) & STATUS_SYS_MODE) >> 0x5;
+	/* Get status mode of the sysBp old area */
+	statusMode = sysBp_old->cpsr & STATUS_SYS_MODE;
 
 	/* Get exception type */
-	cause_excCode = setCAUSE(sysBp_old->CP15_Cause);
+	exceptionType = setCAUSE(sysBp_old->CP15_Cause);
 
-	/* If it is a system call */
-	if (cause_excCode == EXC_SYSCALL)
+	/* [Case 1] It's a system call */
+	if (exceptionType == EXC_SYSCALL)
 	{
-		/* Case User Mode */
-		if (kuMode)
+		/* [Case 1.1] User Mode */
+		if (statusMode == STATUS_USER_MODE)
 		{
-			/* One of the 13 system calls has been called */
+			/* [Case 1.1.1] One of the available system calls has been called */
 			if (sysBp_old->a1 > 0 && sysBp_old->a1 <= SYSCALL_MAX)
 			{
-				/* Imposta Cause.ExcCode a RI
-				sysBp_old->cause = CAUSE_EXCCODE_SET(sysBp_old->cause, EXC_RESERVEDINSTR);
-				*/
-				/* Save SysBP Old Area status pgmTrap Old Area status */
+				/* Save SYS/BP old area into pgmTrap old area */
 				saveCurrentState(sysBp_old, pgmTrap_old);
 
+				/* Set trap cause as Reserved Instruction */
+				pgmTrap_old->CP15_Cause = CAUSE_EXCCODE_SET(pgmTrap_old->CP15_Cause, EXC_RESERVEDINSTR);
+
+				/* Call the trap handler */
 				pgmTrapHandler();
 			}
+			/* [Case 1.1.2] No system calls has been called */
 			else
 			{
-				/* If SYS12 has not been executed the current process must terminate */
-				if (currentProcess->ExStVec[ESV_SYSBP] == 0)
+				/* [Case 1.1.2.1] SYS5 has not been executed */
+				if (currentProcess->excStVec[SYSBKExc] == 0)
 				{
+					/* The current process must terminate */
 					int ris;
 
 					ris = terminateProcess(-1);
 					if (currentProcess)
-						currentProcess->p_s.v1 = ris;
+						currentProcess->p_s.a1 = ris;
 					scheduler();
 				}
-				/* Save SysBP Old Area in the current process */
+				/* [Case 1.1.2.1] SYS5 has been executed */
 				else
 				{
-					saveCurrentState(sysBp_old, currentProcess->sysbpState_old);
-					LDST(currentProcess->sysbpState_new);
+					/* Save SYS/BP old area in the current process */
+					saveCurrentState(sysBp_old, currentProcess->p_state_old[SYSBKExc]);
+					LDST(currentProcess->p_state_new[SYSBKExc]);
 				}
 			}
 		}
-		/* Case Kernel Mode */
+		/* [Case 1.2] Kernel Mode */
 		else
 		{
 			int ris;
 
 			/* Save SYSCALL parameters */
-			U32 arg1 = sysBp_old->a2;
-			U32 arg2 = sysBp_old->a3;
-			U32 arg3 = sysBp_old->a4;
+			U32 a2 = sysBp_old->a2;
+			U32 a3 = sysBp_old->a3;
+			U32 a4 = sysBp_old->a4;
 
 			/* Handle the system call */
 			switch (sysBp_old->a1)
 			{
 				case CREATEPROCESS:
-					currentProcess->p_s.v1 = createProcess((state_t *) arg1);
+					currentProcess->p_s.a1 = createProcess((state_t *) a2);
 					break;
 				case TERMINATEPROCESS:
-					ris = terminateProcess((int) arg1);
+					ris = terminateProcess((int) a2);
 					if (currentProcess)
-						currentProcess->p_s.v1 = ris;
+						currentProcess->p_s.a1 = ris;
 					break;
 				case VERHOGEN:
-					verhogen((int *) arg1);
+
+					verhogen((int *) a2);
 					break;
 				case PASSEREN:
-					passeren((int *)  arg1);
+					passeren((int *) a2);
 					break;
 				case GETPID:
-					currentProcess->p_s.v1 = getPid();
+					currentProcess->p_s.a1 = getPid();
 					break;
 				case GETCPUTIME:
-					currentProcess->p_s.v1 = getCPUTime();
+					currentProcess->p_s.a1 = getCPUTime();
 					break;
 				case WAITCLOCK:
 					waitClock();
 					break;
 				case WAITIO:
-					currentProcess->p_s.v1 = waitIO((int) arg1, (int) arg2, (int) arg3);
+					currentProcess->p_s.a1 = waitIO((int) a2, (int) a3, (int) a4);
 					break;
 				case GETPPID:
-					currentProcess->p_s.v1 = getPpid();
+					currentProcess->p_s.a1 = getPpid();
 					break;
-				case SPECTLBVECT:
-					specTLBvect((state_t *) arg1, (state_t *)arg2);
-					break;
-				case SPECPGMVECT:
-					specPGMvect((state_t *) arg1, (state_t *)arg2);
-					break;
-				case SPECSYSVECT:
-					specSYSvect((state_t *) arg1, (state_t *)arg2);
+				case SPECTRAPVEC:
+					specTrapVec((int) a2, (state_t *) a3, (state_t *) a4);
 					break;
 				default:
 					/* If SYS12 has not been yet executed, the current process shall terminate */
@@ -187,25 +187,26 @@ void sysBpHandler()
 
 						ris = terminateProcess(-1);
 						if (currentProcess)
-							currentProcess->p_s.v1 = ris;
+							currentProcess->p_s.a1 = ris;
 					}
-					/* Otherwise save SysBP Old Area in the current process */
+					/* Otherwise save SYS/BP old area in the current process */
 					else
 					{
-						saveCurrentState(sysBp_old, currentProcess->sysbpState_old);
-						LDST(currentProcess->sysbpState_new);
+						saveCurrentState(sysBp_old, currentProcess->p_state_old[SYSBKExc]);
+						LDST(currentProcess->p_state_new[SYSBKExc]);
 					}
 			}
+
+			/* Call the scheduler */
 			currentProcess->p_s.pc -= 4;
 			scheduler();
 		}
 	}
-
-	/* Case Breakpoint */
-	else if (cause_excCode == EXC_BREAKPOINT)
+	/* [Case 2] It's a breakpoint */
+	else if (exceptionType == EXC_BREAKPOINT)
 	{
 		/* If SYS12 has not been yet executed, the current process shall terminate */
-		if (currentProcess->ExStVec[ESV_SYSBP] == 0)
+		if (currentProcess->excStVec[SYSBKExc] == 0)
 		{
 			int ris;
 
@@ -217,8 +218,8 @@ void sysBpHandler()
 		/* Otherwise save SysBP Old Area in the current process */
 		else
 		{
-			saveCurrentState(sysBp_old, currentProcess->sysbpState_old);
-			LDST(currentProcess->sysbpState_new);
+			saveCurrentState(sysBk_old, currentProcess->p_state_old[SYSBKExc]);
+			LDST(currentProcess->p_state_new[SYSBKExc]);
 		}
 	}
 	/* Anomaly */
@@ -269,18 +270,17 @@ int createProcess(state_t *statep)
 */
 int terminateProcess(int pid)
 {
-	int i;
-	pcb_t *process, *progeny, *pSib;
-	int isSuicide;
+	int i, selfTermination;
+	pcb_t *process, *child, *pSib;
 
 	process = NULL;
-	isSuicide = FALSE;
+	selfTermination = FALSE;
 
-	/* Suicide case */
+	/* Self-termination case */
 	if (pid == -1 || currentProcess->p_pid == pid)
 	{
 		pid = currentProcess->p_pid;
-		isSuicide = TRUE;
+		selfTermination = TRUE;
 	}
 
 	/* Search process in pcbused_table */
@@ -288,12 +288,12 @@ int terminateProcess(int pid)
 
 	/* If process does not exist */
 	if (i == MAXPROC)
-		return -1;
+		return -1; /* Anomaly */
 
 	process = pcbused_table[i].pcb;
 
 	/* [Case 1] Process blocked on a device semaphore */
-	if (process->p_isOnDev == IS_ON_SEM)
+	if (process->p_isOnSem == IS_ON_SEM)
 	{
 		if (!process->p_semAdd)
 			PANIC(); /* Anomaly */
@@ -303,21 +303,21 @@ int terminateProcess(int pid)
 		process = outBlocked(process);
 	}
 	/* [Case 2] Process blocked on the pseudo-clock semaphore */
-	else if (process->p_isOnDev == IS_ON_PSEUDO)
+	else if (process->p_isOnSem == IS_ON_PSEUDO)
 		pseudo_clock++;
 
 	/* If process has a progeny */
 	while (!emptyChild(process))
 	{
-		progeny = removeChild(process);
+		child = removeChild(process);
 
-		if ((terminateProcess(progeny->p_pid)) == -1)
+		if ((terminateProcess(child->p_pid)) == -1)
 			return -1; /* Anomaly */
 	}
 
 	/* Kill process */
 	if (!outChild(process))
-		return -1;
+		return -1; /* Anomaly */
 
 	/* Update pcbused_table */
 	pcbused_table[i].pid = 0;
@@ -325,7 +325,7 @@ int terminateProcess(int pid)
 
 	freePcb(process);
 
-	if (isSuicide == TRUE)
+	if (selfTermination)
 		currentProcess = NULL;
 
 	processCount--;
@@ -340,6 +340,8 @@ int terminateProcess(int pid)
 void verhogen(int *semaddr)
 {
 	pcb_t *process;
+
+	/* Perform a V on the semaphore */
 	(*semaddr)++;
 
 	/* If ASL is not empty */
@@ -348,8 +350,8 @@ void verhogen(int *semaddr)
 		/* Insert process into the ready queue */
 		insertProcQ(&readyQueue, process);
 
-		/* Update isOnDev flag */
-		process->p_isOnDev = FALSE;
+		/* Update p_isOnSem flag */
+		process->p_isOnSem = FALSE;
 	}
 }
 
@@ -360,19 +362,73 @@ void verhogen(int *semaddr)
 */
 void passeren(int *semaddr)
 {
+	/* Perform a P on the semaphore */
 	(*semaddr)--;
 
 	/* If semaphore value becomes negative */
 	if ((*semaddr) < 0)
 	{
-		/* Add process to the semaphore queue */
+		/* Block process into the semaphore queue */
 		if (insertBlocked(semaddr, currentProcess))
 			PANIC(); /* Anomaly */
-		currentProcess->p_isOnDev = IS_ON_SEM;
+
+		currentProcess->p_isOnSem = TRUE;
 		currentProcess = NULL;
 	}
 
 
+}
+
+/**
+ *	specTrapVec - save the oldp and the newp in the Current Process to make easier the passed up
+ *	@type: 0 for TLB exceptions; 1 for PgmTrap exceptions; 2 for SYS/Bp exceptions;
+ *	@oldp: address that store the old processor state.
+ *	@newp: address of the processor state area that is to be taken as the new processor state if an
+ *		exception occurs while running this process.
+ *
+ *	Specify Exception State Vector
+ *	When this service is requested, the nucleus will save the contents of a3 and
+ *	a4 (in the invoking processes' ProcBlk) to facilitate “passing up” handling of the
+ *	respective exception when (and if) one occurs while this process is executing.
+ *	When an exception occurs for which an Exception State Vector has been specified
+ *	for, the nucleus stores the processor state at the time of the exception in the area
+ *	pointed to by the address in a3, and loads the new processor state from the area
+ *	pointed to by the address given in a4.
+ *	Each process may request a SYS5 service at most once for each of three exception types.
+ *	An attempt to request a SYS5 service more than once per exception type by any process
+ *	should be considered as an error and treated as a SYS2.
+ */
+void specTrapVec(int type, state_t *oldp, state_t *newp)
+{
+	/* if type is not consistent */
+	if ((type < 0) || (type > 2)) {
+
+		terminateProcess();
+
+		if (currentProcess != NULL)
+			currentProcess->p_s.a1 = -1;
+
+	}
+	else {
+
+		/* we increase excStVec so we know sys 5 was called */
+		currentProcess->excStVec[type]++;
+
+		if (currentProcess->excStVec[type] > 1) {	/* case: SYS5 called more then once, then SYS2 */
+
+			terminateProcess();
+
+			if (currentProcess != NULL)
+				currentProcess->p_s.a1 = -1;
+
+		}
+		else {
+
+			currentProcess->p_state_old[type] = oldp;
+			currentProcess->p_state_new[type] = newp;
+
+		}
+	}
 }
 
 /**
@@ -384,14 +440,14 @@ int getPid()
 	return currentProcess->p_pid;
 }
 
-/**
-  * @brief (SYS6) Restituisce il tempo d'uso della CPU da parte del processo chiamante.
-  * @return Restituisce il tempo d'uso della CPU.
- */
+/*
+@brief (SYS6) Retrieve the CPU time of the current process.
+@return CPU time of the current process.
+*/
 cpu_t getCPUTime()
 {
-	/* Aggiorna il tempo di vita del processo sulla CPU */
-	currentProcess->p_cpu_time += (getTODLO() - processTOD);
+	/* Perform a last update of the CPU time */
+	currentProcess->p_cpu_time += getTODLO() - processTOD;
 	processTOD = getTODLO();
 
 	return currentProcess->p_cpu_time;
@@ -403,165 +459,95 @@ cpu_t getCPUTime()
  */
 void waitClock()
 {
-	pseudo_clock--;
-
-	if(pseudo_clock < 0)
-	{
-		/* Inserisce il processo corrente in coda al semaforo specificato */
-		if(insertBlocked((S32 *) &pseudo_clock, currentProcess)) PANIC(); /* PANIC se sono finiti i descrittori dei semafori */
-		currentProcess->p_isOnDev = IS_ON_PSEUDO;
-		currentProcess = NULL;
-		softBlockCount++;
-		scheduler();
-	}
-
+	/* Just call the passeren method */
+	passerenIO(&pseudo_clock);
 }
 
 /**
 @brief (SYS8) Perform a P operation on a device semaphore.
-@param intlNo Interrupt line.
-@param dnum Device number.
-@param waitForTermRead : TRUE in case of reading; FALSE else.
+@param interruptLine Interrupt line.
+@param deviceNumber Device number.
+@param reading : TRUE in case of reading; FALSE else.
 @return Return the device's Status Word.
 */
-unsigned int waitIO(int intlNo, int dnum, int waitForTermRead)
+unsigned int waitIO(int interruptLine, int deviceNumber, int reading)
 {
-	switch (intlNo)
+	termreg_t *terminal;
+	dtpreg_t *device;
+
+	switch (interruptLine)
 	{
 		case INT_DISK:
-			passerenIO(&sem.disk[dnum]);
+			passerenIO(&sem.disk[deviceNumber]);
 			break;
 		case INT_TAPE:
-			passerenIO(&sem.tape[dnum]);
+			passerenIO(&sem.tape[deviceNumber]);
 			break;
 		case INT_UNUSED:
-			passerenIO(&sem.network[dnum]);
+			passerenIO(&sem.network[deviceNumber]);
 			break;
 		case INT_PRINTER:
-			passerenIO(&sem.printer[dnum]);
+			passerenIO(&sem.printer[deviceNumber]);
 			break;
 		case INT_TERMINAL:
-			if (waitForTermRead)
-				passerenIO(&sem.terminalR[dnum]);
+			if (reading)
+				passerenIO(&sem.terminalR[deviceNumber]);
 			else
-				passerenIO(&sem.terminalT[dnum]);
+				passerenIO(&sem.terminalT[deviceNumber]);
 			break;
-		default: PANIC();
+		default:
+			PANIC(); /* Anomaly */
 	}
 
-	return statusWordDev[intlNo - 3 + waitForTermRead][dnum];
-}
-
-/**
-  * @brief (SYS9) Restituisce l'identificativo del genitore del processo chiamante.
-  * @return -1 se il processo chiamante è il processo radice (init), altrimenti il PID del genitore.
- */
-int getPpid()
-{
-	if(currentProcess->p_pid == 1) return -1;
-	else return currentProcess->p_prnt->p_pid;
-}
-
-/**
-  * @brief (SYS10) Quando occorre un'eccezione di tipo TLB entrambi gli stati del processore (oldp e newp) vengono salvati nel processo.
-  *		   Caso mai la SYS10 fosse già stata chiamata dallo stesso processo, viene trattata come una SYS2.
-  * @param oldp : l'indirizzo del vecchio stato del processore.
-  * @param newp : l'indirizzo del nuovo stato del processore.
-  * @return void.
- */
-void specTLBvect(state_t *oldp, state_t *newp)
-{
-	int ris;
-
-	currentProcess->ExStVec[ESV_TLB]++;
-	/* Se l'eccezione è già stata chiamata dal processo corrente precedentemente, viene terminato */
-	if(currentProcess->ExStVec[ESV_TLB] > 1)
+	/* [Case 1] The device is not the terminal */
+	if (interruptLine != INT_TERMINAL)
 	{
-		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
+		device = (dtpreg_t *) DEV_REG_ADDR(interruptLine, deviceNumber);
+		return device->status;
 	}
+	/* [Case 2] The device is the terminal */
 	else
 	{
-		/* Altrimenti vengono salvati i due stati del processore nel processo corrente */
-		currentProcess->tlbState_old = oldp;
-		currentProcess->tlbState_new = newp;
+		terminal = (termreg_t *) DEV_REG_ADDR(interruptLine, deviceNumber);
+
+		/* Distinguish between receiving and transmitting status */
+		return (reading)? terminal->recv_status : terminal->transm_status;
 	}
+
+	PANIC(); /* Anomaly */
+	return 0;
 }
 
-/**
-  * @brief (SYS11) Quando occorre un'eccezione di tipo Program Trap entrambi gli stati del processore (oldp e newp) vengono salvati nel processo.
-  *		   Caso mai la SYS11 fosse già stata chiamata dallo stesso processo, viene trattata come una SYS2.
-  * @param oldp : l'indirizzo del vecchio stato del processore
-  * @param newp : l'indirizzo del nuovo stato del processore
-  * @return void.
- */
-void specPGMvect(state_t *oldp, state_t *newp)
-{
-	int ris;
-
-	currentProcess->ExStVec[1]++;
-	/* Se l'eccezione è già stata chiamata dal processo corrente, viene terminato */
-	if(currentProcess->ExStVec[ESV_PGMTRAP] > 1)
-	{
-		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
-	}
-	else
-	{
-		/* Altrimenti vengono salvati i due stati del processore nel processo corrente */
-		currentProcess->pgmtrapState_old = oldp;
-		currentProcess->pgmtrapState_new = newp;
-	}
-}
-
-/**
-  * @brief (SYS12) Quando occorre un'eccezione di tipo Syscall/Breakpoint entrambi gli stati del processore (oldp e newp) vengono salvati nel processo.
-  *		   Caso mai la SYS12 fosse già stata chiamata dallo stesso processo, viene trattata come una SYS2.
-  * @param oldp : l'indirizzo del vecchio stato del processore
-  * @param newp : l'indirizzo del nuovo stato del processore
-  * @return void.
- */
-void specSYSvect(state_t *oldp, state_t *newp)
-{
-	int ris;
-
-	currentProcess->ExStVec[ESV_SYSBP]++;
-	/* Se l'eccezione è già stata chiamata dal processo corrente, viene terminato */
-	if(currentProcess->ExStVec[ESV_SYSBP] > 1)
-	{
-		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
-	}
-	else
-	{
-		/* Altrimenti vengono salvati i due stati del processore nel processo corrente */
-		currentProcess->sysbpState_old = oldp;
-		currentProcess->sysbpState_new = newp;
-	}
-}
-
-/**
-  * @brief Gestione d'eccezione TLB.
-  * @return void.
- */
+/*
+@brief TLB (Translation Lookaside Buffer) Exception Handling.
+@return void.
+*/
 void tlbHandler()
 {
 	int ris;
 
-	/* Se un processo è attualmente eseguito dal processore, la TLB Old Area viene caricata sul processo corrente */
-	if(currentProcess != NULL)
+	/* If a process is running */
+	if (currentProcess)
+		/* Save TLB old area into the current process state */
 		saveCurrentState(TLB_old, &(currentProcess->p_s));
+	else
+		/* Call scheduler */
+		scheduler();
 
-	/* Se non è già stata eseguita la SYS10, viene terminato il processo corrente */
-	if(currentProcess->ExStVec[ESV_TLB] == 0)
+	/* If SYS5 has not been called */
+	if (currentProcess->excStVec[TLBExc] == 0)
 	{
+		/* Terminate the process */
 		ris = terminateProcess(-1);
-		if(currentProcess != NULL) currentProcess->p_s.v1 = ris;
+		if (currentProcess)
+			currentProcess->p_s.v1 = ris;
+
+		/* Call scheduler */
 		scheduler();
 	}
-	/* Altrimenti viene salvata la TLB Old Area all'interno del processo corrente */
 	else
 	{
+		/* Save TLB Old Area into the current process state */
 		saveCurrentState(TLB_old, currentProcess->tlbState_old);
 		LDST(currentProcess->tlbState_new);
 	}
