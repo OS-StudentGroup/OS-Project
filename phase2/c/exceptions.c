@@ -114,7 +114,7 @@ void sysBpHandler()
 			else
 			{
 				/* [Case 1.1.2.1] SYS5 has not been executed */
-				if (currentProcess->excStVec[SYSBKExc] == 0)
+				if (currentProcess->exceptionState[SYSBKExc] == 0)
 				{
 					/* The current process must terminate */
 					int ris;
@@ -206,7 +206,7 @@ void sysBpHandler()
 	else if (exceptionType == EXC_BREAKPOINT)
 	{
 		/* If SYS12 has not been yet executed, the current process shall terminate */
-		if (currentProcess->excStVec[SYSBKExc] == 0)
+		if (currentProcess->exceptionState[SYSBKExc] == 0)
 		{
 			int ris;
 
@@ -411,10 +411,10 @@ void specTrapVec(int type, state_t *oldp, state_t *newp)
 	}
 	else {
 
-		/* we increase excStVec so we know sys 5 was called */
-		currentProcess->excStVec[type]++;
+		/* we increase exceptionState so we know sys 5 was called */
+		currentProcess->exceptionState[type]++;
 
-		if (currentProcess->excStVec[type] > 1) {	/* case: SYS5 called more then once, then SYS2 */
+		if (currentProcess->exceptionState[type] > 1) {	/* case: SYS5 called more then once, then SYS2 */
 
 			terminateProcess();
 
@@ -535,7 +535,7 @@ void tlbHandler()
 		scheduler();
 
 	/* If SYS5 has not been called */
-	if (currentProcess->excStVec[TLBExc] == 0)
+	if (currentProcess->exceptionState[TLBExc] == 0)
 	{
 		/* Terminate the process */
 		ris = terminateProcess(-1);

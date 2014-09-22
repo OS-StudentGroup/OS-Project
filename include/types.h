@@ -12,18 +12,18 @@ typedef struct pcb_t
 {
 	struct pcb_t
 	/* Process queue fields */
-		*p_next,					/**< Pointer to next entry */
+		*p_next,			/**< Pointer to next entry */
 
 	/* Process tree fields */
-		*p_prnt,					/**< Pointer to parent */
-		*p_child,					/**< Pointer to first child */
-		*p_sib;						/**< Pointer to next sibling */
+		*p_prnt,			/**< Pointer to parent */
+		*p_child,			/**< Pointer to first child */
+		*p_sib;				/**< Pointer to next sibling */
 
 	/* Process management */
-	state_t p_s;					/**< Processor state */
-	S32 *p_semAdd;					/**< Pointer to semaphore on which process blocked */
-	int p_pid;						/**< Process id */
-	cpu_t p_cpu_time;				/**< Process CPU time */
+	state_t p_s;				/**< Processor state */
+	S32 *p_semAdd;				/**< Pointer to semaphore on which process blocked */
+	int p_pid;				/**< Process id */
+	cpu_t p_cpu_time;			/**< Process CPU time */
 	int exceptionState[MAX_STATE_VECTOR];	/**< Exception State Vector */
 	state_t *tlbState_old;			/**< TLB old area */
 	state_t *tlbState_new;			/**< TLB new area */
@@ -31,7 +31,7 @@ typedef struct pcb_t
 	state_t *pgmtrapState_new;		/**< PgmTrap new area */
 	state_t *sysbpState_old;		/**< SysBP old area */
 	state_t *sysbpState_new;		/**< SysBP new area */
-	int p_isOnSem;					/**< Semaphore Flag */
+	int p_isOnSem;				/**< Semaphore Flag */
 } pcb_t;
 
 /* Used PCBs */
