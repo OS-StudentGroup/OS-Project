@@ -1,13 +1,15 @@
 /**
 @file scheduler.c
-@author
 @note Process scheduler and deadlock detection.
 */
 
-#include "../e/scheduler.e"
-#include "../h/initial.h"
-#include "../../phase1/e/pcb.e"
+#include "../e/inclusions.e"
 
+/**
+@brief The function updates the CPU time of the running process and re-start the timer tick.
+In case there is not a running process, the function performs deadlock detection, initializes the CPU time and starts the first process in the Ready Queue.
+@return Void.
+*/
 void scheduler()
 {
 	/* [Case 1] A process is running */
@@ -33,10 +35,10 @@ void scheduler()
 		/* If Ready Queue is empty */
 		if (emptyProcQ(readyQueue))
 		{
-			/* No more processes */
+			/* If there are no more processes then halt the system */
 			if (processCount == 0)
 				HALT();
-			/* Deadlock */
+			/* Deadlock Detection */
 			if (processCount > 0 && softBlockCount == 0)
 				PANIC();
 			/* Wait state */
@@ -45,7 +47,7 @@ void scheduler()
 				/* Enable interrupts */
 				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
 
-				/* Put the machine in idle state waiting for interrupts */
+				/* Set the machine in idle state waiting for interrupts */
 				WAIT();
 			}
 			PANIC(); /* Anomaly */
@@ -59,14 +61,14 @@ void scheduler()
 		timerTick += getTODLO() - startTimerTick;
 		startTimerTick = getTODLO();
 		
-		/* Set process start time in the CPU */
+		/* Set CPU time to 0 */
 		currentProcess->p_cpu_time = 0;
 		processTOD = getTODLO();
-		
+	
 		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
 		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - timerTick)));
 
-		/* Load the processor state for execution */
+		/* Load the processor state in oreder to start execution */
 		LDST(&(currentProcess->p_s));
 	}
 }
