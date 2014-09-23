@@ -4,7 +4,14 @@
 @note This module implements main() and exports the nucleus’s global variables. (e.g. Process Count, device semaphores, etc.)
  */
 
-#include "../e/inclusions.e"
+#include "../../phase1/h/asl.h"
+#include "../../phase1/e/pcb.e"
+#include "../../include/libuarm.h"
+#include "../../include/const.h"
+#include "../../include/arch.h"
+#include "../../include/uARMconst.h"
+#include "../e/exceptions.e"
+#include "../e/scheduler.e"
 #include "../h/initial.h"
 
 HIDDEN void populateArea(memaddr oldArea, memaddr handler)

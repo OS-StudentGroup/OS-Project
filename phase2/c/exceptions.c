@@ -3,7 +3,13 @@
 @note SYS/Bp Exception Handling
 */
 
-#include "../e/inclusions.e"
+#include "../../phase1/h/asl.h"
+#include "../../phase1/e/pcb.e"
+#include "../e/exceptions.e"
+#include "../h/initial.h"
+#include "../e/interrupts.e"
+#include "../e/scheduler.e"
+#include "../../include/libuarm.h"
 
 HIDDEN state_t *SysBP_old = (state_t *) SYSBK_OLDAREA;		/* System Call/Break Point Old Area */
 HIDDEN state_t *TLB_old = (state_t *) TLB_OLDAREA;			/* TLB Old Area */

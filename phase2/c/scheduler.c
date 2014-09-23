@@ -3,7 +3,9 @@
 @note Process scheduler and deadlock detection.
 */
 
-#include "../e/inclusions.e"
+#include "../e/scheduler.e"
+#include "../h/initial.h"
+#include "../../phase1/e/pcb.e"
 
 /**
 @brief The function updates the CPU time of the running process and re-start the Timer Tick.
