@@ -1,27 +1,20 @@
 /**
 @file const.h
-@author
 @note This header file contains the global constant & macro definitions.
 */
 #ifndef CONST_H
 #define CONST_H
+
 /*****************************************************/
 /* Exception State Vector */
-#define MAX_STATE_VECTOR 3
-#define ESV_TLB 0
-#define ESV_PGMTRAP 1
-#define ESV_SYSBP 2
-
-/* isOnDev State */
-#define IS_ON_DEV 1
-#define IS_ON_PSEUDO 2
-#define IS_ON_SEM 3
+#define NUM_EXCEPTIONS 3
+#define TLB_EXCEPTION 0
+#define PROGRAM_TRAP_EXCEPTION 1
+#define SYS_BK_EXCEPTION 2
 
 /* Status Word Table */
 #define STATUS_WORD_ROWS 6
 #define STATUS_WORD_COLS 8
-
-
 
 /*****************************************************/
 /* max number of overall concurrent processes */
@@ -37,16 +30,25 @@
 #define TRUE 		1
 #define NULL 		((void *)0)
 
-/* Device Check Address */
+/* Device Check Addresses */
+#define DEV_CHECK_ADDRESS_0 1
+#define DEV_CHECK_ADDRESS_1 2
+#define DEV_CHECK_ADDRESS_2 4
+#define DEV_CHECK_ADDRESS_3 8
+#define DEV_CHECK_ADDRESS_4 16
+#define DEV_CHECK_ADDRESS_5 32
+#define DEV_CHECK_ADDRESS_6 64
+#define DEV_CHECK_ADDRESS_7 128
 
-#define DEV_CHECK_ADDRESS_0 0x40
-#define DEV_CHECK_ADDRESS_1 0x80
-#define DEV_CHECK_ADDRESS_2 0x20
-#define DEV_CHECK_ADDRESS_3 0x6FE0
-#define DEV_CHECK_ADDRESS_4 0x6FE4
-#define DEV_CHECK_ADDRESS_5 0x6FE8
-#define DEV_CHECK_ADDRESS_6 0x6FEC
-#define DEV_CHECK_ADDRESS_7 0x6FF0
+/* Interrupt Line Numbers */
+#define IL_IPI 0
+#define IL_CPUTIMER 1
+#define IL_TIMER 2
+#define IL_DISK 3
+#define IL_TAPE 4
+#define IL_ETHERNET 5
+#define IL_PRINTER 6
+#define IL_TERMINAL 7
 
 /* Check Status Bit */
 #define CHECK_STATUS_BIT 0xFF

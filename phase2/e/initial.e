@@ -1,48 +1,27 @@
-/**
- *  @file initial.e
- *  @author Vincenzo Ferrari - Barbara Iadarola
- *  @brief File di definizione del modulo initial.e
- *  @note Contiene tutte le definizioni delle funzioni implementate nel modulo initial.e
- */
+/*
+@file initial.e
+@brief Esternal definitions for initial.c
+*/
  
 #ifndef INITIAL_E
 #define INITIAL_E
 
-#include "../../include/types.h"
 #include "../../include/const.h"
+#include "../../include/types.h"
 
-extern void test(void);
+EXTERN void test(void);
 
-//extern struct list_head readyQueue;
-
-extern pcb_t *currentProcess;
-
-extern U32 processCount;
-
-extern U32 pidCount;
-
-extern U32 softBlockCount;
-
-/*
-extern struct {
-	int disk[8];
-	int tape[8];
-	int network[8];
-	int printer[8];
-	int terminalR[8];
-	int terminalT[8];
-} sem;
-*/
-extern int pseudo_clock;
-
-extern cpu_t processTOD;
-
-extern int statusWordDev[6][8];
-
-extern int timerTick;
-
-extern cpu_t startTimerTick;
-
-extern pcb_pid_t pcbused_table[MAXPROC];
+/* External global variables */
+EXTERN pcb_t *ReadyQueue;
+EXTERN pcb_t *CurrentProcess;
+EXTERN U32 ProcessCount;
+EXTERN U32 PidCount;
+EXTERN U32 SoftBlockCount;
+EXTERN SemaphoreStruct Semaphore;
+EXTERN int PseudoClock;
+EXTERN cpu_t ProcessTOD;
+EXTERN int StatusWordDev[STATUS_WORD_ROWS][STATUS_WORD_COLS];
+EXTERN int TimerTick;
+EXTERN cpu_t StartTimerTick;
 
 #endif

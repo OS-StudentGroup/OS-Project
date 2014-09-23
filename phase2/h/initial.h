@@ -1,54 +1,36 @@
+/**
+@file initial.h
+@note Entry point.
+*/
 #ifndef INITIAL_H
 #define INITIAL_H
 
-/**
-@file initial.h
-@author
-@note main().
-*/
-
-#include "../../phase1/h/pcb.h"
-#include "../../include/libuarm.h"
-#include "../../include/const.h"
-#include "../../include/arch.h"
-#include "../../include/uARMconst.h"
-#include "../e/exceptions.e"
-#include "../e/interrupts.e"
-
+#include "../e/inclusions.e"
 
 /* Global variables declarations */
-pcb_t *readyQueue;							/**< Process ready queue */
-pcb_t *currentProcess;									/**< Pointer to the executing PCB */
-U32 processCount;										/**< Process counter */
-U32 pidCount;											/**< PID counter */
-U32 softBlockCount;										/**< Blocked process counter */
-int statusWordDev[STATUS_WORD_ROWS][STATUS_WORD_COLS];	/**< Device Status Word table */
-struct													/**< Semaphore structure */
-{
-	int disk[DEV_PER_INT];
-	int tape[DEV_PER_INT];
-	int network[DEV_PER_INT];
-	int printer[DEV_PER_INT];
-	int terminalR[DEV_PER_INT];
-	int terminalT[DEV_PER_INT];
-} sem;
-int pseudo_clock;										/**< Pseudo-clock semaphore */
-cpu_t processTOD;										/**< Process start time */
-int timerTick;											/**< Tick timer */
-cpu_t startTimerTick;									/**< Pseudo-clock tick start time */
-pcb_pid_t pcbused_table[MAXPROC];						/**< Used PCB table */
+EXTERN pcb_t *ReadyQueue;										/**< Process ready queue */
+EXTERN pcb_t *CurrentProcess;									/**< Pointer to the executing PCB */
+EXTERN U32 ProcessCount;										/**< Process counter */
+EXTERN U32 PidCount;											/**< PID counter */
+EXTERN U32 SoftBlockCount;										/**< Blocked process counter */
+EXTERN int StatusWordDev[STATUS_WORD_ROWS][STATUS_WORD_COLS];	/**< Device Status Word table */
+EXTERN SemaphoreStruct Semaphore;								/**< Device semaphores per line */
+EXTERN int PseudoClock;											/**< Pseudo-clock semaphore */
+EXTERN cpu_t ProcessTOD;										/**< Process start time */
+EXTERN int TimerTick;											/**< Tick timer */
+EXTERN cpu_t StartTimerTick;									/**< Pseudo-clock tick start time */
 
-extern void test(void);
+EXTERN void test(void);
 
-/**
-  * @brief Populate a new processor state area.
-  * @param area Physical address of the area.
-  * @param handler Physical address of the handler.
-  * @return Void.
- */
+/*
+@brief Populate a new processor state area.
+@param area Physical address of the area.
+@param handler Physical address of the handler.
+@return Void.
+*/
 HIDDEN void populate(memaddr area, memaddr handler);
 
-/**
+/*
 @brief The entry point for Kaya which performs the nucleus initialization.
 @return Void.
 */

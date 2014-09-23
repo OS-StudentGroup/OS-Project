@@ -1,33 +1,26 @@
-/**
- *  @file exceptions.e
- *  @author Vincenzo Ferrari - Barbara Iadarola
- *  @brief File di definizione del modulo exceptions.c
- *  @note Contiene tutte le definizioni delle funzioni implementate nel modulo exceptions.c
- */
+/*
+@file exceptions.e
+@brief External definitions for exceptions.c
+*/
  
 #ifndef EXCEPTIONS_E
 #define EXCEPTIONS_E
 
-#include "../../include/types.h"
 #include "../../include/const.h"
+#include "../../include/types.h"
 #include "initial.e"
 
-void saveCurrentState (state_t *current, state_t *new);
-void sysBpHandler();
-int createProcess(state_t *statep);
-int terminateProcess(int pid);
-void verhogen(int *semaddr);
-void passeren(int *semaddr);
-int getPid();
-cpu_t getCPUTime();
-void waitClock();
-unsigned int waitIO(int intlNo, int dnum, int waitForTermRead);
-int getPpid();
-void specTLBvect(state_t *oldp, state_t *newp);
-void specPGMvect(state_t *oldp, state_t *newp);
-void specSYSvect(state_t *oldp, state_t *newp);
-void pgmTrapHandler();
-void tlbHandler();
-void intHandler();
+EXTERN void saveCurrentState(state_t *currentState, state_t *newState);
+EXTERN void sysBpHandler();
+EXTERN int createProcess(state_t *statep);
+EXTERN void terminateProcess();
+EXTERN void verhogen(int *semaddr);
+EXTERN void passeren(int *semaddr);
+EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew);
+EXTERN cpu_t getCPUTime();
+EXTERN void waitClock();
+EXTERN unsigned int waitIO(int interruptLine, int deviceNumber, int reading);
+EXTERN void tlbHandler();
+EXTERN void pgmTrapHandler();
 
 #endif

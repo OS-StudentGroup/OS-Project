@@ -1,43 +1,53 @@
+/*
+@file interrupts.h
+@note This module implements the device interrupt exception handler.
+This module will process all the device interrupts, including Interval Timer interrupts,
+converting device interrupts into V operations on the appropriate semaphores.
+*/
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 
-/**
-@file interrupts.h
-@author
-@note This module implements the device interrupt exception handler. This module will process all the device interrupts, including Interval Timer interrupts, converting device interrupts into V operations on the appropriate semaphores.
-*/
-
 #include "../e/scheduler.e"
 
-/* Variabili per accedere ai campi status e command di device o terminali */
-HIDDEN int *rStatus, *tStatus;
-HIDDEN int *rCommand, *tCommand;
-HIDDEN int recvStatByte, transmStatByte;
-HIDDEN int *status, *command;
-
-/**
-@brief Riconosce il device che ha un interrupt pendente sulla bitmap passata per parametro.
-@param bitMapDevice : bitmap degli interrupt pendenti per linea di interrupt.
-@return Ritorna l'indice del device che ha un interrupt pendente su quella bitmap.
+/*
+@brief Identify at which device a pending interrupt refers to.
+@param bitmap Bitmap of the pending interrupt.
+@return The device identifier.
 */
-HIDDEN int recognizeDev(int bitMapDevice);
+HIDDEN int getDevice(int bitmap);
 
-/**
-@brief Sblocca il processo sul semaforo del device che ha causato l'interrupt.
-Se non c'è nessun processo da bloccare si aggiorna la matrice degli status word dei device,
-altrimenti si inserisce nella readyQueue.
-@param *semaddr : indirizzo del semaforo associato al device che ha causato l'interrupt
-@param status : campo del device corrispondente al suo stato
-@param line : linea di interrupt su cui è presente l'interrupt pendente da gestire
-@param dev : device che ha causato l'interrupt pendente da gestire
-@return Ritorna il pcb bloccato sul semaforo del device il cui indirizzo è passato per parametro, se presente
+/*
+@brief Performs a V on the given device semaphore.
+@param semaddr Address of the semaphore.
+@param status Device status.
+@return The unblocked process, or NULL.
 */
-HIDDEN pcb_t *verhogenInt(int *semaddr, int status, int line, int dev);
+HIDDEN pcb_t *verhogenInt(int *semaddr, int status);
 
-/**
-@brief Interrupts manager.
+/*
+@brief Acknowledge a pending interrupt on the Timer Click.
 @return Void.
 */
-void intHandler();
+HIDDEN void intTimer();
+
+/**
+@brief Acknowledge a pending interrupt through setting the command code in the device register.
+@return Void.
+*/
+HIDDEN void devInterrupt(int cause);
+
+/*
+@brief Acknowledge a pending interrupt on the terminal, distinguishing between receiving and sending ones.
+@return Void.
+*/
+HIDDEN void intTerminal();
+
+/*
+@brief The function identifies the pending interrupt and performs a V on the related semaphore.
+@return Void.
+*/
+EXTERN void intHandler();
+
+
 
 #endif

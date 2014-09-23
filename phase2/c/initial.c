@@ -3,16 +3,10 @@
 @author
 @note This module implements main() and exports the nucleus’s global variables. (e.g. Process Count, device semaphores, etc.)
  */
-#include "../../phase1/h/asl.h"
-#include "../../phase1/e/pcb.e"
-#include "../../include/libuarm.h"
-#include "../../include/const.h"
-#include "../../include/arch.h"
-#include "../../include/uARMconst.h"
-#include "../e/exceptions.e"
-#include "../e/scheduler.e"
+
+#include "../e/inclusions.e"
 #include "../h/initial.h"
- 
+
 HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 {
 	state_t *newArea;
@@ -47,36 +41,29 @@ void main(void)
 	initPcbs();
 	initASL();
 	
-	/* Initialize variables */
-	readyQueue = mkEmptyProcQ();
-	currentProcess = NULL;
-	processCount = softBlockCount = pidCount = timerTick = 0;
-	
-	/* Initialize PCB table */
-	for (i = 0; i < MAXPROC; i++)
-	{
-		pcbused_table[i].pid = 0;
-		pcbused_table[i].pcb = NULL;
-	}
+	/* Initialize global variables */
+	ReadyQueue = mkEmptyProcQ();
+	CurrentProcess = NULL;
+	ProcessCount = SoftBlockCount = PidCount = TimerTick = 0;
 	
 	/* Initialize device semaphores */
 	for (i = 0; i < DEV_PER_INT; i++)
-		sem.disk[i] =
-		sem.tape[i] =
-		sem.network[i] =
-		sem.printer[i] =
-		sem.terminalR[i] =
-		sem.terminalT[i] = 0;
+		Semaphore.disk[i] =
+		Semaphore.tape[i] =
+		Semaphore.network[i] =
+		Semaphore.printer[i] =
+		Semaphore.terminalR[i] =
+		Semaphore.terminalT[i] = 0;
 	
 	/* Initialize pseudo-clock semaphore */
-	pseudo_clock = 0;
+	PseudoClock = 0;
 	
-	/* Initialize init */
+	/* Initialize init method */
 	if (!(init = allocPcb()))
-		PANIC();
+		PANIC(); /* Anomaly */
 	
-	/* Unmasked interrupts; Virtual Memory off; Kernel-Mode on */
-	firstProc->p_s.CP15_Control &= ~(0x1);
+	/* Enable interrupts; enable Kernel-Mode; disable Virtual Memory */
+	init->p_s.CP15_Control &= ~(0x1);
 	init->p_s.cpsr =  STATUS_SYS_MODE | STATUS_ALL_INT_ENABLE(init->p_s.cpsr);
 	
 	/* Initialize Stack Pointer */
@@ -86,19 +73,15 @@ void main(void)
 	init->p_s.pc = (memaddr) test;
 	
 	/* Initialize Process Id */
-	init->p_pid = ++pidCount;
-	
-	/* Update PCB table */
-	pcbused_table[0].pid = init->p_pid;
-	pcbused_table[0].pcb = init;
+	init->p_pid = ++PidCount;
 
 	/* Insert init in ProcQ */
-	insertProcQ(&readyQueue, init);
-	processCount++;
+	insertProcQ(&ReadyQueue, init);
+	ProcessCount++;
 	
-	/* Start timer */
-	startTimerTick = getTODLO();
+	/* Start the timer tick */
+	StartTimerTick = getTODLO();
 
-	/* Run scheduler */
+	/* Call the scheduler */
 	scheduler();
 }

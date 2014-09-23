@@ -6,32 +6,29 @@
 #include "../e/inclusions.e"
 
 /* Interrupt Old Area */
-HIDDEN state_t *interruptOldArea = (state_t *) INT_OLDAREA;
+HIDDEN state_t *InterruptOldArea = (state_t *) INT_OLDAREA;
 
 /* Device Base Address */
-HIDDEN memaddr deviceBaseAddress;
+HIDDEN memaddr DeviceBaseAddress;
 
-/**
+/* Device Check Addresses */
+HIDDEN const int DeviceCheckAddress[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+
+/* Device Check Lines*/
+HIDDEN const int InterruptLine[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+/*
 @brief Identify at which device a pending interrupt refers to.
 @param bitmap Bitmap of the pending interrupt.
 @return The device identifier.
 */
 HIDDEN int getDevice(int bitmap)
 {
-	switch (bitmap)
-	{
-	case (bitmap | DEV_CHECK_ADDR_0): 	return IL_IPI;
-	case (bitmap | DEV_CHECK_ADDR_1): 	return IL_CPUTIMER;
-	case (bitmap | DEV_CHECK_ADDR_2): 	return IL_TIMER;
-	case (bitmap | DEV_CHECK_ADDR_3): 	return IL_DISK;
-	case (bitmap | DEV_CHECK_ADDR_4): 	return IL_TAPE;
-	case (bitmap | DEV_CHECK_ADDR_5): 	return IL_ETHERNET;
-	case (bitmap | DEV_CHECK_ADDR_6): 	return IL_PRINTER;
-	default:				return IL_TERMINAL;
-	}
+	int i;
+	for (i = 0; bitmap != (bitmap | DeviceCheckAddress[i]); i++);
+	return InterruptLine[i];
 }
 
-/**
+/*
 @brief Performs a V on the given device semaphore.
 @param semaddr Address of the semaphore.
 @param status Device status.
@@ -44,21 +41,21 @@ HIDDEN pcb_t *verhogenInt(int *semaddr, int status)
 	/* Performs a V on the semaphore */
 	(*semaddr)++;
 
-	/* [Case 1] At least one blocked process */
+	/* If there is at least one blocked process */
 	if (!(process = removeBlocked(semaddr)))
 	{
 		/* Add the process into the Ready Queue */
-		insertProcQ(&readyQueue, process);
+		insertProcQ(&ReadyQueue, process);
 
-		softBlockCount--;
-		p->p_s.a1 = status;
-		process->p_isOnSem = FALSE;
+		SoftBlockCount--;
+		process->p_s.a1 = status;
+		process->p_isBlocked = FALSE;
 	}
 	
 	return process;
 }
 
-/**
+/*
 @brief Acknowledge a pending interrupt on the Timer Click.
 @return Void.
 */
@@ -67,72 +64,72 @@ HIDDEN void intTimer()
 	pcb_t *process;
 
 	/* Update elapsed time */
-	timerTick += getTODLO() - startTimerTick;
-	startTimerTick = getTODLO();
+	TimerTick += getTODLO() - StartTimerTick;
+	StartTimerTick = getTODLO();
 
-	/* [Case 1] The time slice for the current process did not ran out */
-	if (timerTick >= SCHED_PSEUDO_CLOCK)
+	/* [Case 1] The Time Slice for the current process did not ran out */
+	if (TimerTick >= SCHED_PSEUDO_CLOCK)
 	{
-		/* [Case 1] At least one blocked processes */
-		if (pseudo_clock < 0)
+		/* [Case 1.1] There is at least one blocked process */
+		if (PseudoClock < 0)
 		{
-			/* Unblock all processes (i.e. undo all previous SYS7 side effects) */
-			for (; pseudo_clock < 0; pseudo_clock++)
+			/* Unblock all processes */
+			for (; PseudoClock < 0; PseudoClock++)
 			{
 				/* If there is a blocked process */
-				if ((process = removeBlocked(&pseudo_clock)))
+				if ((process = removeBlocked(&PseudoClock)))
 				{
 					/* Add the process into the Ready Queue */
-					insertProcQ(&readyQueue, process);
+					insertProcQ(&ReadyQueue, process);
 
-					process->p_isOnSem = FALSE;
-					softBlockCount--;
+					process->p_isBlocked = FALSE;
+					SoftBlockCount--;
 				}
 			}
 		}
-		/* [Case 2] At most one blocked process */
+		/* [Case 1.2] There is at most one blocked process */
 		else
 		{
-			/* [Case 2.1] 0 blocked processes */
-			if (!(process = removeBlocked(&pseudo_clock)))
-				/* Perform a P on the pseudo-clock */
-				pseudo_clock--;
-			/* [Case 2.2] 1 blocked process */
+			/* [Case 1.2.1] 0 blocked processes */
+			if (!(process = removeBlocked(&PseudoClock)))
+				/* Perform a P on the Pseudo-Clock */
+				PseudoClock--;
+			/* [Case 1.2.2] 1 blocked process */
 			else
 			{
 				/* Add the process into the Ready Queue */
-				insertProcQ(&readyQueue, process);
+				insertProcQ(&ReadyQueue, process);
 
-				process->p_isOnSem = FALSE;
-				softBlockCount--;
+				process->p_isBlocked = FALSE;
+				SoftBlockCount--;
 
-				/* Perform a V on the pseudo-clock */
-				pseudo_clock++;
+				/* Perform a V on the Pseudo-Clock */
+				PseudoClock++;
 			}
 		}
 
-		/* Reset the timer tick used to compute the pseudo-clock tick */
-		timerTick = 0;
-		startTimerTick = getTODLO();
+		/* Reset the timer tick used to compute the Pseudo-Clock tick */
+		TimerTick = 0;
+		StartTimerTick = getTODLO();
 	}
-	/* [Case 2] The time slice for the current process ran out */
-	else if (currentProcess)
+	/* [Case 2] The Time Slice for the current process ran out */
+	else if (CurrentProcess)
 	{
-		/* Add current process into Ready Queue */
-		insertProcQ(&readyQueue, currentProcess);
-		currentProcess = NULL;
-		softBlockCount++;
+		/* Add the current process into the Ready Queue */
+		insertProcQ(&ReadyQueue, CurrentProcess);
+		CurrentProcess = NULL;
+		SoftBlockCount++;
 
 		/* Update elapsed time */
-		timerTick += (getTODLO() - startTimerTick);
-		startTimerTick = getTODLO();
+		TimerTick += (getTODLO() - StartTimerTick);
+		StartTimerTick = getTODLO();
 	}
-	/* [Case 3] There is no a running process */
+	/* [Case 3] There is not a running process */
 	else
-		setTIMER(SCHED_PSEUDO_CLOCK - timerTick);
+		setTIMER(SCHED_PSEUDO_CLOCK - TimerTick);
 }
 
-/**
+/*
 @brief Acknowledge a pending interrupt through setting the command code in the device register.
 @return Void.
 */
@@ -145,7 +142,7 @@ HIDDEN void devInterrupt(int cause)
 	/* Get the starting address of the device bitmap */
 	deviceBitmap = (int *) CDEV_BITMAP_ADDR(cause);
 
-	/* Get the highest priority device with pending interrupt */
+	/* Get the highest priority device affected by a pending interrupt */
 	deviceNumber = getDevice(*deviceBitmap);
 
 	/* Get the device status */
@@ -154,18 +151,18 @@ HIDDEN void devInterrupt(int cause)
 	/* Perform a V on the device semaphore */
 	switch (cause)
 	{
-	case (INT_DISK):	process = verhogenInt(&sem.disk[deviceNumber], status->status);		break;
-	case (INT_TAPE):	process = verhogenInt(&sem.tape[deviceNumber], status->status);		break;
-	case (INT_UNUSED):	process = verhogenInt(&sem.network[deviceNumber], status->status);	break;
-	case (INT_PRINTER):	process = verhogenInt(&sem.printer[deviceNumber], status->status);	break;
+		case (INT_DISK):	process = verhogenInt(&Semaphore.disk[deviceNumber], status->status);		break;
+		case (INT_TAPE):	process = verhogenInt(&Semaphore.tape[deviceNumber], status->status);		break;
+		case (INT_UNUSED):	process = verhogenInt(&Semaphore.network[deviceNumber], status->status);	break;
+		case (INT_PRINTER):	process = verhogenInt(&Semaphore.printer[deviceNumber], status->status);	break;
 	}
 
-	/* Ack on device to identify the pending interrupt */
+	/* Identify the pending interrupt */
 	status->command = DEV_C_ACK;
 }
 
-/**
-@brief Acknowledge a pending interrupt on the terminal, distinguishing between receiving and sending interrupts.
+/*
+@brief Acknowledge a pending interrupt on the terminal, distinguishing between receiving and sending ones.
 @return Void.
 */
 HIDDEN void intTerminal()
@@ -177,7 +174,7 @@ HIDDEN void intTerminal()
 	/* Get the starting address of the device bitmap */
 	deviceBitmap = (int *) CDEV_BITMAP_ADDR(INT_TERMINAL);
 
-	/* Get the highest priority device with pending interrupt */
+	/* Get the highest priority device affected by a pending interrupt */
 	deviceNumber = getDevice(*deviceBitmap);
 
 	/* Get the device status */
@@ -187,50 +184,50 @@ HIDDEN void intTerminal()
 	if ((status->recv_status & DEV_TERM_STATUS) == DEV_TRCV_S_CHARRECV)
 	{
 		/* Perform a V on the device semaphore */
-		verhogenInt(&sem4.terminalR[deviceNumber], status->recv_status);
+		verhogenInt(&Semaphore.terminalR[deviceNumber], status->recv_status);
 
-		/* Ack on device to identify the pending interrupt */
+		/* Identify the pending interrupt */
 		status->recv_command = DEV_C_ACK;
 	}
 	/* [Case 2] Receiving a character */
 	else if ((status->transm_status & DEV_TERM_STATUS) == DEV_TTRS_S_CHARTRSM)
 	{
 		/* Perform a V on the device semaphore */
-		verhogenInt(&sem4.terminalT[deviceNumber], status->transm_status);
+		verhogenInt(&Semaphore.terminalT[deviceNumber], status->transm_status);
 
-		/* Ack on device to identify the pending interrupt */
+		/* Identify the pending interrupt */
 		status->transm_command = DEV_C_ACK;
 	}
 }
 
 
-/**
+/*
 @brief The function identifies the pending interrupt and performs a V on the related semaphore.
 @return Void.
 */
-void intHandler()
+EXTERN void intHandler()
 {
-	int intCause;
+	int interruptCause;
 	
 	/* If there is a running process */
-	if (currentProcess)
+	if (CurrentProcess)
 	{
-		/* Save current process state */
-		saveCurrentState(interruptOldArea , &(currentProcess->p_s));
+		/* Save current processor state */
+		saveCurrentState(InterruptOldArea , &(CurrentProcess->p_s));
 
 		/* Decrease Program Counter */
-		currentProcess->p_s.pc -= 2 * WORD_SIZE;
+		CurrentProcess->p_s.pc -= 2 * WORD_SIZE;
 	}
 
-	/* Get interrupt cause */
-	intCause = interruptOldArea->CP15_Cause;
-	if 	(CAUSE_IP_GET(intCause, INT_TIMER))	intTimer();			/* Timer */
-	else if (CAUSE_IP_GET(intCause, INT_DISK))	devInterrupt(INT_DISK);		/* Disk */
-	else if (CAUSE_IP_GET(intCause, INT_TAPE))	devInterrupt(INT_TAPE);		/* Tape */
-	else if (CAUSE_IP_GET(intCause, INT_UNUSED))	devInterrupt(INT_UNUSED);	/* Unsused */
-	else if (CAUSE_IP_GET(intCause, INT_PRINTER))	devInterrupt(INT_PRINTER);	/* Printer */
-	else if (CAUSE_IP_GET(intCause, INT_TERMINAL))	intTerminal();			/* Terminal */
+	/* Get the interrupt cause and call the handler accordingly */
+	interruptCause = InterruptOldArea->CP15_Cause;
+	if 		(CAUSE_IP_GET(interruptCause, INT_TIMER))		intTimer();					/* Timer */
+	else if (CAUSE_IP_GET(interruptCause, INT_DISK))		devInterrupt(INT_DISK);		/* Disk */
+	else if (CAUSE_IP_GET(interruptCause, INT_TAPE))		devInterrupt(INT_TAPE);		/* Tape */
+	else if (CAUSE_IP_GET(interruptCause, INT_UNUSED))		devInterrupt(INT_UNUSED);	/* Unused */
+	else if (CAUSE_IP_GET(interruptCause, INT_PRINTER))		devInterrupt(INT_PRINTER);	/* Printer */
+	else if (CAUSE_IP_GET(interruptCause, INT_TERMINAL))	intTerminal();				/* Terminal */
 	
-	/* Run scheduler */
+	/* Call the scheduler */
 	scheduler();
 }

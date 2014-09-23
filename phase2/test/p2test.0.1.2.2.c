@@ -29,18 +29,43 @@
  *      Modified by Michael Goldweber on May 15, 2004
  *      Modified by Davide Brini on Nov 26, 2004
  *      Modified by Renzo Davoli 2010
- * 		Modified by Marco Melletti 2014
+ *      Modified by Miro Mannino on May 8, 2010
  */
 
-#include "../../include/uARMconst.h"
-#include "../../include/uARMtypes.h"
-#include "../../include/base.h"
-#include "../../include/libuarm.h"
-#include "../../include/const.h"
+/*
+--------------------------------
+modifiche rispetto al p2test.0.1.c
+--------------------------------
+ - Modificate le inclusioni
+ - Aggiunti commenti e messaggi per capire meglio l'esecuzione e se
+   risulta corretta
+ - commentato il typedef di cpu_t e aggiunto commentato la definizione
+   per il pid_t
+ - costante SEMAPHORE cambiata in S32
+ - controllo sul valore del semaforo nella prima chiamata a V
+ - p4 controlla che il pid restituito da getpid sia lo stesso di quello
+   restituito dalla chiamata createprocess
+ - p4 termina se stesso senza usare -1 ma con il proprio pid per testare
+   la terminazione di se stesso senza l'uso di -1
+ - controllo sulla terminazione di un processo non esistente o che
+   esisteva ed ha ottenuto lo stesso pid (ragionevolmente nel tempo)
+ - controllo che tutto lo status del terminale sia quello effettivamente
+   richiesto
+ - test sulla terminazione con suicidio indiretto
+--------------------------------
+*/
+
+#include <uARMconst.h>
+#include <uARMtypes.h>
+#include <types10.h>
+#include <base.h>
+#include <libuarm.h>
 
 typedef unsigned int devregtr;
+
 /* if these are not defined */
-typedef U32 cpu_t;
+/* typedef U32 cpu_t; */
+/* typedef U32 pid_t; */
 
 /* hardware constants */
 #define PRINTCHR	2
@@ -57,7 +82,7 @@ typedef U32 cpu_t;
 
 #define QPAGE			1024
 
-#define KUPBITON		0x8
+#define KUPBITON		0x8			//occhio!!
 #define KUPBITOFF		0xFFFFFFF7
 
 #define MINLOOPTIME		10000
@@ -68,6 +93,7 @@ typedef U32 cpu_t;
 
 #define BADADDR			0xFFFFFFFF /* could be 0x00000000 as well */
 #define	TERM0ADDR		0x240
+
 
 /* Software and other constants */
 #define PRGOLDVECT		4
@@ -99,10 +125,12 @@ SEMAPHORE term_mut=1,	/* for mutual exclusion on terminal */
 		endp4=0,		/* to signal demise of p4 */
 		endp5=0,		/* to signal demise of p5 */
 		endp8=0,		/* to signal demise of p8 */
+		blkp9=0,		/* used to block p9 process */
+		synp9=0,		/* used to sync with p9 */
 		endcreate=0,	/* for a p8 leaf to signal its creation */
 		blkp8=0;		/* to block p8 */
 
-state_t p2state, p3state, p4state, p5state,	p6state, p7state;
+state_t p2state, p3state, p4state, p5state,	p6state, p7state, p9state;
 state_t p8rootstate, child1state, child2state;
 state_t gchild1state, gchild2state, gchild3state, gchild4state;
 
@@ -117,10 +145,15 @@ int		p4inc=1;		/* p4 incarnation number */
 unsigned int p5Stack;	/* so we can allocate new stack for 2nd p5 */
 
 int creation = 0; 				/* return code for SYSCALL invocation */
-memaddr *p5MemLocation = (memaddr *) 0x34;		/* To cause a p5 trap */
+memaddr *p5MemLocation = 0x34;		/* To cause a p5 trap */
+
+pid_t p4pid;
+pid_t testpid;
+int p9i;
 
 void	p2(),p3(),p4(),p5(),p5a(),p5b(),p6(),p7(),p7a(),p5prog(),p5mm();
 void	p5sys(),p8root(),child1(),child2(),p8leaf();
+void	p9();
 
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
@@ -138,6 +171,8 @@ void print(char *msg) {
 		
 		/* Wait for I/O completion (SYS8) */
 		status = SYSCALL(WAITIO, INT_TERMINAL, 0, FALSE);
+
+/*		PANIC(); */
 		
 		if ((status & TERMSTATMASK) != TRANSM)
 			PANIC();
@@ -156,8 +191,7 @@ void print(char *msg) {
 /*                 p1 -- the root process                            */
 /*                                                                   */
 void test() {	
-	cpu_t		time1, time2;
-	
+
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
 
 	if (testsem != 1) { print("error: p1 v(testsem) with no effects\n"); PANIC(); }
@@ -257,6 +291,11 @@ void test() {
 	gchild4state.pc = (memaddr)p8leaf;
 	gchild4state.cpsr = STATUS_ALL_INT_ENABLE(gchild4state.cpsr);
 	
+	STST(&p9state);
+	p9state.sp = p9state.sp - QPAGE;
+	p9state.pc = (memaddr)p9;
+	p9state.cpsr = STATUS_ALL_INT_ENABLE(p9state.cpsr);
+	
 	/* create process p2 */
 	SYSCALL(CREATEPROCESS, (int)&p2state, 0, 0);				/* start p2     */
 
@@ -279,7 +318,7 @@ void test() {
 	SYSCALL(PASSEREN, (int)&endp3, 0, 0);					/* P(endp3)     */
 
 
-	SYSCALL(CREATEPROCESS, (int)&p4state, 0, 0);		/* start p4     */
+	p4pid = SYSCALL(CREATEPROCESS, (int)&p4state, 0, 0);		/* start p4     */
 
 	SYSCALL(CREATEPROCESS, (int)&p5state, 0, 0); 		/* start p5     */
 
@@ -293,34 +332,54 @@ void test() {
 
 	SYSCALL(PASSEREN, (int)&blkp4, 0, 0);					/* P(blkp4)		*/
 	
-	print("p1 knows p4 ended\n");
-	
 	/* now for a more rigorous check of process termination */
-	SYSCALL(VERHOGEN, (int)&blkp8, 0, 0);
-	
 	for (p8inc = 0; p8inc < 4; p8inc++) {
-		SYSCALL(PASSEREN, (int)&blkp8, 0, 0);
-		
 		creation = SYSCALL(CREATEPROCESS, (int)&p8rootstate, 0, 0);
 
 		if (creation == CREATENOGOOD) {
-			print("error in p8 process creation\n");
+			print("error in process termination\n");
 			PANIC();
 		}
 
 		SYSCALL(PASSEREN, (int)&endp8, 0, 0);
-		
-		/* do some delay to be reasonably sure p8 and its offspring are dead */
-		time1 = 0;
-		time2 = 0;
-		while (time2 - time1 < (CLOCKINTERVAL >> 1))  {
-			time1 = getTODLO();
-			SYSCALL(WAITCLOCK, 0, 0, 0);
-			time2 = getTODLO();
-		}
-		
-		SYSCALL(VERHOGEN, (int)&blkp8, 0, 0);
 	}
+
+	/* now for a more more rigorous check of process termination */
+	testpid = SYSCALL(CREATEPROCESS, (int)&p9state, 0, 0);		/* start p9		*/
+
+	SYSCALL(PASSEREN, (int)&synp9, 0, 0);					/* P(syn9)		*/
+	
+	if (SYSCALL(TERMINATEPROCESS, testpid, 0, 0) == TERMINATENOGOOD ) {
+		print("\nerror: unable to kill a process\n");
+		PANIC();
+	} 
+
+	if (SYSCALL(TERMINATEPROCESS, testpid, 0, 0) != TERMINATENOGOOD ) {
+		print("\nerror: killed an already killed process\n");
+		PANIC();
+	}
+
+	print("\n");
+	
+	for (p9i=1; p9i<=2*MAXPROC; p9i++){
+		creation = SYSCALL(CREATEPROCESS, (int)&p9state, 0, 0);		/* start p9		*/
+
+		SYSCALL(PASSEREN, (int)&synp9, 0, 0);					/* P(syn9)		*/
+
+		if (p9i % MAXPROC == 0) print("\n");
+
+		if (SYSCALL(TERMINATEPROCESS, testpid, 0, 0) != TERMINATENOGOOD ) {
+			print("\nerror: killed an already killed process\n");
+			PANIC();
+		}
+
+		if (SYSCALL(TERMINATEPROCESS, creation, 0, 0) == TERMINATENOGOOD ) {
+			print("\nerror: unable to kill a process\n");
+			PANIC();
+		}
+	}
+	
+	print("termination with pid OK\n");
 	
 	print("p1 finishes OK -- TTFN\n");
 	* ((memaddr *) BADADDR) = 0;				/* terminate p1 */
@@ -381,7 +440,7 @@ void p2() {
 
 	SYSCALL(VERHOGEN, (int)&endp2, 0, 0);				/* V(endp2)     */
 
-	SYSCALL(TERMINATEPROCESS, 0, 0, 0);			/* terminate p2 */
+	SYSCALL(TERMINATEPROCESS, -1, 0, 0);			/* terminate p2 */
 
 	/* just did a SYS2, so should not get to this point */
 	print("error: p2 didn't terminate\n");
@@ -423,7 +482,7 @@ void p3() {
 
 	SYSCALL(VERHOGEN, (int)&endp3, 0, 0);				/* V(endp3)        */
 
-	SYSCALL(TERMINATEPROCESS, 0, 0, 0);			/* terminate p3    */
+	SYSCALL(TERMINATEPROCESS, -1, 0, 0);			/* terminate p3    */
 
 	/* just did a SYS2, so should not get to this point */
 	print("error: p3 didn't terminate\n");
@@ -431,28 +490,24 @@ void p3() {
 }
 
 
-/* p4 -- termination test process */
+/* p4 -- termination test process and getpid test */
 void p4() {
+	pid_t pid;
 	
 	switch (p4inc) {
 		case 1:
 			print("first incarnation of p4 starts\n");
+			p4inc++;
 			break;
 		case 2:
 			print("second incarnation of p4 starts\n");
 			break;
 	}
-	p4inc++;
 
 	SYSCALL(VERHOGEN, (int)&synp4, 0, 0);				/* V(synp4)     */
 
 	/* first incarnation made blkp4=0, the second is blocked (blkp4 become -1) */
 	SYSCALL(PASSEREN, (int)&blkp4, 0, 0);				/* P(blkp4)     */
-
-	if(p4inc == 3){
-		print("error: second incarnation of p4 did not terminate with original p4\n");
-		PANIC();
-	}
 
 	SYSCALL(PASSEREN, (int)&synp4, 0, 0);				/* P(synp4)     */
 
@@ -468,11 +523,19 @@ void p4() {
 
 	SYSCALL(PASSEREN, (int)&synp4, 0, 0);				/* wait for it       */
 
+	pid = SYSCALL(GETPID, 0, 0, 0);
+	if (p4pid != pid){
+		print("error: createprocess or getpid are wrong\n");
+		PANIC();
+	}
+  
+	print("p4 is OK\n");
+
 	SYSCALL(VERHOGEN, (int)&endp4, 0, 0);				/* V(endp4)          */
 
 	print("p4 termination with the child\n");
 	
-	SYSCALL(TERMINATEPROCESS, 0, 0, 0);			/* terminate p4      */
+	SYSCALL(TERMINATEPROCESS, pid, 0, 0);			/* terminate p4      */
 
 	/* just did a SYS2, so should not get to this point */
 	print("error: p4 didn't terminate\n");
@@ -494,7 +557,7 @@ void p5prog() {
 		
 	case EXC_RESERVEDINSTR:
 		print("pgmTrapHandler - privileged instruction - set kernel mode on\n");
-		print("p5 - try to call sys13 in kernel mode\n");
+		print("p5 - try call sys13 in kernel mode for verify pass up\n");
 		/* return in kernel mode */
 		pstat_o.cpsr = pstat_o.cpsr | 0xF;
 		pstat_o.pc = (memaddr)p5b;
@@ -523,8 +586,8 @@ void p5mm() {
 	mstat_o.pc = (memaddr)p5b;  /* return to p5b */
 	mstat_o.sp = p5Stack-QPAGE;				/* Start with a fresh stack */
 
-	/* this should be done by p5b(). print() is called here because p5b() is executed in user mode */
-	print("p5 - try to call sys13 in user mode\n");
+	/* this is made to p5b(). printed in this point because in p5b the kernel mode is off */
+	print("p5 - try call sys13 in user mode for verify pass up\n");
 	
 	LDST(&mstat_o);
 }
@@ -538,8 +601,9 @@ void p5sys() {
 			print("High level SYS call from kernel mode process\n");
 	} else {
 		print("High level SYS call from user mode process\n");
-		print("p5 - try to execute P() in user mode\n");
-	}
+		print("p5 - try to call P in user mode\n");
+	}	
+	//sstat_o.pc = sstat_o.pc + 4;   /*	 to avoid SYS looping */
 	LDST(&sstat_o);
 }
 
@@ -563,13 +627,13 @@ void p5() {
 
 
 	/* specify trap vectors */
-	SYSCALL(SPECTRAPVEC, SPECPGMT, (int)&pstat_o, (int)&pstat_n);
+	SYSCALL(SPECPGMVECT, (int)&pstat_o, (int)&pstat_n, 0);
 
-	SYSCALL(SPECTRAPVEC, SPECTLB, (int)&mstat_o, (int)&mstat_n);
+	SYSCALL(SPECTLBVECT, (int)&mstat_o, (int)&mstat_n, 0);
 
-	SYSCALL(SPECTRAPVEC, SPECSYSBP, (int)&sstat_o, (int)&sstat_n);
+	SYSCALL(SPECSYSVECT, (int)&sstat_o, (int)&sstat_n, 0);
 
-	print("p5 - try to cause a pgm trap accessing some non-existent memory\n");
+	print("p5 - try to cause a pgm trap access some non-existent memory\n");
 	/* to cause a pgm trap access some non-existent memory */	
 	*p5MemLocation = *p5MemLocation + 1;		 /* Should cause a program trap */
 }
@@ -589,7 +653,7 @@ void p5a() {
 /* second part of p5 - should be entered in user mode */
 void p5b() {
 	cpu_t		time1, time2;
-	
+
 	SYSCALL(13, 0, 0, 0);
 	
 	/* the first time through, we are in user mode */
@@ -611,11 +675,11 @@ void p5b() {
 
 	SYSCALL(VERHOGEN, (int)&endp5, 0, 0);			/* V(endp5) */
 
-	print("p5 - try to redefine PGMVECT, this will cause p5 termination\n");
+	print("p5 - try to redefine PGMVECT, it will cause p5 termination\n");
 	/* should cause a termination       */
 	/* since this has already been      */
 	/* done for PROGTRAPs               */
-	SYSCALL(SPECTRAPVEC, 1, (int)&pstat_o, (int)&pstat_n);
+	SYSCALL(SPECPGMVECT, (int)&pstat_o, (int)&pstat_n, 0);
 
 	/* should have terminated, so should not get to this point */
 	print("error: p5 didn't terminate\n");
@@ -664,35 +728,37 @@ void p8root() {
 	
 	SYSCALL(VERHOGEN, (int)&endp8, 0, 0);
 
-	SYSCALL(TERMINATEPROCESS, 0, 0, 0);
+	SYSCALL(TERMINATEPROCESS, -1, 0, 0);
 }
 
 /*child1 & child2 -- create two sub-processes each*/
 
 void child1() {
 	print("child1 starts\n");
+
+	/* try to kill grandfather, it check the return value if the
+	 * terminateprocess syscall don't kill progeny */
+	if (SYSCALL(TERMINATEPROCESS, creation, 0, 0) != TERMINATENOGOOD) PANIC();
 	
 	SYSCALL(CREATEPROCESS, (int)&gchild1state, 0, 0);
 	
 	SYSCALL(CREATEPROCESS, (int)&gchild2state, 0, 0);
 
 	SYSCALL(PASSEREN, (int)&blkp8, 0, 0);
-	
-	print("error: p8 child was not killed with father\n");
-	PANIC();
 }
 
 void child2() {
 	print("child2 starts\n");
 
+	/* try to kill grandfather, it check the return value if the
+	 * terminateprocess syscall don't kill progeny */
+	if (SYSCALL(TERMINATEPROCESS, creation, 0, 0) != TERMINATENOGOOD) PANIC();
+	
 	SYSCALL(CREATEPROCESS, (int)&gchild3state, 0, 0);
 	
 	SYSCALL(CREATEPROCESS, (int)&gchild4state, 0, 0);
 
 	SYSCALL(PASSEREN, (int)&blkp8, 0, 0);
-	
-	print("error: p8 child was not killed with father\n");
-	PANIC();
 }
 
 /*p8leaf -- code for leaf processes*/
@@ -700,10 +766,17 @@ void child2() {
 void p8leaf() {
 	print("leaf process starts\n");
 
+	/* try to kill grandfather, it check the return value if the
+	 * terminateprocess syscall don't kill progeny */
+	if (SYSCALL(TERMINATEPROCESS, creation, 0, 0) != TERMINATENOGOOD) PANIC();
+	
 	SYSCALL(VERHOGEN, (int)&endcreate, 0, 0);
 
 	SYSCALL(PASSEREN, (int)&blkp8, 0, 0);
-	
-	print("error: p8 grandchild was not killed with father\n");
-	PANIC();
+}
+
+void p9() {
+	print("-");
+	SYSCALL(VERHOGEN, (int)&synp9, 0, 0);
+	SYSCALL(PASSEREN, (int)&blkp9, 0, 0);
 }

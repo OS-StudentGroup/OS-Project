@@ -6,43 +6,44 @@
 #include "../e/inclusions.e"
 
 /**
-@brief The function updates the CPU time of the running process and re-start the timer tick.
-In case there is not a running process, the function performs deadlock detection, initializes the CPU time and starts the first process in the Ready Queue.
+@brief The function updates the CPU time of the running process and re-start the Timer Tick.
+In case there is not a running process, the function performs deadlock detection, initializes
+the CPU time and starts the first process in the Ready Queue.
 @return Void.
 */
-void scheduler()
+EXTERN void scheduler()
 {
-	/* [Case 1] A process is running */
-	if (currentProcess)
+	/* [Case 1] There is a running process */
+	if (CurrentProcess)
 	{
 		/* Set process start time in the CPU */
-		currentProcess->p_cpu_time += getTODLO() - processTOD;
-		processTOD = getTODLO();
+		CurrentProcess->p_cpu_time += getTODLO() - ProcessTOD;
+		ProcessTOD = getTODLO();
 		
-		/* Update elapsed time of the pseudo-clock tick */
-		timerTick += getTODLO() - startTimerTick;
-		startTimerTick = getTODLO();
+		/* Update elapsed time of the Pseudo-Clock tick */
+		TimerTick += getTODLO() - StartTimerTick;
+		StartTimerTick = getTODLO();
 		
-		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
-		setTIMER(MIN((SCHED_TIME_SLICE - currentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - timerTick)));
+		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
+		setTIMER(MIN((SCHED_TIME_SLICE - CurrentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - TimerTick)));
 
-		/* Load the executing process state */
-		LDST(&(currentProcess->p_s));
+		/* Load the processor state in order to start execution */
+		LDST(&(CurrentProcess->p_s));
 	}
-	/* [Case 2] No process is running */
+	/* [Case 2] There is not a running process */
 	else
 	{
 		/* If Ready Queue is empty */
-		if (emptyProcQ(readyQueue))
+		if (emptyProcQ(ReadyQueue))
 		{
 			/* If there are no more processes then halt the system */
-			if (processCount == 0)
+			if (ProcessCount == 0)
 				HALT();
 			/* Deadlock Detection */
-			if (processCount > 0 && softBlockCount == 0)
+			if (ProcessCount > 0 && SoftBlockCount == 0)
 				PANIC();
-			/* Wait state */
-			if (processCount > 0 && softBlockCount > 0)
+			/* At least one process is blocked */
+			if (ProcessCount > 0 && SoftBlockCount > 0)
 			{
 				/* Enable interrupts */
 				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
@@ -54,21 +55,21 @@ void scheduler()
 		}
 		
 		/* Extract first ready process */
-		if (!(currentProcess = removeProcQ(&readyQueue)))
+		if (!(CurrentProcess = removeProcQ(&ReadyQueue)))
 			PANIC(); /* Anomaly */
 		
-		/* Compute elapsed time from the pseudo-clock tick */
-		timerTick += getTODLO() - startTimerTick;
-		startTimerTick = getTODLO();
+		/* Compute elapsed time from the Pseudo-Clock tick */
+		TimerTick += getTODLO() - StartTimerTick;
+		StartTimerTick = getTODLO();
 		
-		/* Set CPU time to 0 */
-		currentProcess->p_cpu_time = 0;
-		processTOD = getTODLO();
+		/* Initialize CPU time */
+		CurrentProcess->p_cpu_time = 0;
+		ProcessTOD = getTODLO();
 	
-		/* Set Interval Timer as the smallest between timeslice and pseudo-clock tick */
-		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - timerTick)));
+		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
+		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - TimerTick)));
 
-		/* Load the processor state in oreder to start execution */
-		LDST(&(currentProcess->p_s));
+		/* Load the processor state in order to start execution */
+		LDST(&(CurrentProcess->p_s));
 	}
 }

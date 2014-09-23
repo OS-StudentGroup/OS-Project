@@ -1,16 +1,15 @@
-/**
- *  @file interrupts.e
- *  @author Vincenzo Ferrari - Barbara Iadarola
- *  @brief File di definizione del modulo interrupts.e
- *  @note Contiene tutte le definizioni delle funzioni implementate nel modulo interrupts.e
- */
+/*
+@file interrupts.e
+@brief External definitions for interrupts.c
+*/
  
 #ifndef INTERRUPTS_E
 #define INTERRUPTS_E
 
-#include "../../include/types.h"
 #include "../../include/const.h"
+#include "../../include/types.h"
+#include "initial.e"
 
-void intHandler();
+EXTERN void intHandler();
 
 #endif
