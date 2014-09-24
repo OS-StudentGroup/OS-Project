@@ -66,7 +66,7 @@ HIDDEN int getDevice(int bitmap)
 HIDDEN void verhogenInt(int *semaddr, int status)
 {
 	pcb_t *process;
-	
+	/* tprint(" VeroghenInt "); */
 	/* Performs a V on the semaphore */
 	(*semaddr)++;
 
@@ -196,7 +196,7 @@ HIDDEN void intTerminal()
 {
 	int *deviceBitmap, deviceNumber;
 	termreg_t *status;
-
+  /*tprint(" IntTerminal ");*/
 	/* Get the starting address of the device bitmap */
 	deviceBitmap = (int *) CDEV_BITMAP_ADDR(INT_TERMINAL);
 
@@ -209,6 +209,7 @@ HIDDEN void intTerminal()
 	/* [Case 1] Sending a character */
 	if ((status->recv_status & DEV_TERM_STATUS) == DEV_TRCV_S_CHARRECV)
 	{
+    tprint(" recv ");
 		/* Perform a V on the device semaphore */
 		verhogenInt(&Semaphore.terminalR[deviceNumber], status->recv_status);
 
@@ -218,6 +219,7 @@ HIDDEN void intTerminal()
 	/* [Case 2] Receiving a character */
 	else if ((status->transm_status & DEV_TERM_STATUS) == DEV_TTRS_S_CHARTRSM)
 	{
+   /* tprint(" send "); */
 		/* Perform a V on the device semaphore */
 		verhogenInt(&Semaphore.terminalT[deviceNumber], status->transm_status);
 
@@ -234,7 +236,7 @@ HIDDEN void intTerminal()
 EXTERN void intHandler()
 {
 	int interruptCause;
-	
+	/*tprint(" IntHandler ");*/
 	/* If there is a running process */
 	if (CurrentProcess)
 	{

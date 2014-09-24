@@ -94,7 +94,6 @@ int main()
 
 	/* Start the timer tick */
 	StartTimerTick = getTODLO();
-
 	/* Call the scheduler */
 	scheduler();
 

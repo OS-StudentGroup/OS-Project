@@ -26,7 +26,6 @@ void scheduler()
 		
 		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
 		setTIMER(MIN((SCHED_TIME_SLICE - CurrentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - TimerTick)));
-
 		/* Load the processor state in order to start execution */
 		LDST(&(CurrentProcess->p_s));
 	}

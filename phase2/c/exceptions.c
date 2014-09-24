@@ -50,12 +50,12 @@ by one the number of processes in the system currently blocked and waiting for a
 EXTERN void passerenIO(int *semaddr)
 {
 	/* Perform a P on the semaphore */
+  
 	if (--(*semaddr) < 0)
 	{
 		/* Block current process in the semaphore queue */
 		if (insertBlocked(semaddr, CurrentProcess))
 			PANIC(); /* Anomaly */
-
 		CurrentProcess->p_isBlocked = TRUE;
 		CurrentProcess = NULL;
 		SoftBlockCount++;
@@ -121,12 +121,12 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 		U32 a2 = SysBP_old->a2;
 		U32 a3 = SysBP_old->a3;
 		U32 a4 = SysBP_old->a4;
-
 		/* Identify and handle the system call */
 		switch (SysBP_old->a1)
 		{
 			/* [Case 1] Create a new process */
 			case CREATEPROCESS:
+        tprint("create");
 				CurrentProcess->p_s.a1 = createProcess((state_t *) a2);
 
 				break;
@@ -142,28 +142,34 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 				break;
 			/* [Case 3] Perform a V operation on a semaphore */
 			case VERHOGEN:
+       /* tprint("Verhogen"); */
 				verhogen((int *) a2);
 
 				break;
 			/* [Case 4] Perform a P operation on a semaphore */
 			case PASSEREN:
+       /* tprint("Passeren"); */
 				passeren((int *) a2);
 
 				break;
 			/* [Case 5] Get the CPU time */
 			case GETCPUTIME:
+       /*  tprint("GetCPUtime"); */
 				CurrentProcess->p_s.a1 = getCPUTime();
 
 				break;
 			case WAITCLOCK:
+        /* tprint("WaitClock"); */
 				waitClock();
 
 				break;
 			case WAITIO:
+         tprint("WaitIO");
 				CurrentProcess->p_s.a1 = waitIO((int) a2, (int) a3, (int) a4);
 
 				break;
 			case SPECTRAPVEC:
+        tprint("SPECTRA");
 				specTrapVec((int) a2, (state_t *) a3, (state_t *) a4);
 
 				break;
@@ -181,6 +187,7 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 				}
 				else
 				{
+        tprint("ELSE");
 					/* Otherwise save SYS/BP Old Area in the current process Old Area */
 					saveCurrentState(SysBP_old, CurrentProcess->p_stateOldArea[SYS_BK_EXCEPTION]);
 
@@ -188,7 +195,6 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 					LDST(CurrentProcess->p_stateNewArea[SYS_BK_EXCEPTION]);
 				}
 		}
-
 		/* Call the scheduler */
 		scheduler();
 	}
@@ -238,7 +244,7 @@ EXTERN void sysBpHandler()
 	saveCurrentState(SysBP_old, &(CurrentProcess->p_s));
 
 	/* Avoid endless loop of system calls */
-	CurrentProcess->p_s.pc += WORD_SIZE;
+	/*CurrentProcess->p_s.pc += WORD_SIZE; */
 
 	/* Get status mode of the SYS/BP Old Area */
 	statusMode = SysBP_old->cpsr & STATUS_SYS_MODE;
@@ -375,7 +381,6 @@ EXTERN void passeren(int *semaddr)
 		/* Block process into the semaphore queue */
 		if (insertBlocked(semaddr, CurrentProcess))
 			PANIC(); /* Anomaly */
-
 		CurrentProcess->p_isBlocked = TRUE;
 		CurrentProcess = NULL;
 	}
@@ -481,6 +486,7 @@ EXTERN unsigned int waitIO(int interruptLine, int deviceNumber, int reading)
 			passerenIO(&Semaphore.printer[deviceNumber]);
 			break;
 		case INT_TERMINAL:
+      tprint("terminal");
 			if (reading)
 				passerenIO(&Semaphore.terminalR[deviceNumber]);
 			else
