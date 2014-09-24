@@ -81,7 +81,7 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 	if (statusMode == STATUS_USER_MODE)
 	{
 		/* [Case 1.1] One of the available system calls has been raised */
-		if (SysBP_old->a1 > 0 && SysBP_old->a1 <= 8)
+		if (SysBP_old->a1 > 0 && SysBP_old->a1 < 9)
 		{
 			/* Save SYS/BP Old Area into PgmTrap Old Area */
 			saveCurrentState(SysBP_old, PgmTrap_old);
@@ -96,7 +96,7 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 		else
 		{
 			/* [Case 1.2.1] SYS5 has not been executed */
-			if (CurrentProcess->exceptionState[SYS_BK_EXCEPTION] == 0)
+			if (!CurrentProcess->exceptionState[SYS_BK_EXCEPTION])
 			{
 				/* Terminate the current process */
 				terminateProcess();
@@ -127,12 +127,13 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 		U32 a3 = SysBP_old->a3;
 		U32 a4 = SysBP_old->a4;
 
-		/* Handle the system call */
+		/* Identify and handle the system call */
 		switch (SysBP_old->a1)
 		{
 			/* [Case 1] Create a new process */
 			case CREATEPROCESS:
 				CurrentProcess->p_s.a1 = createProcess((state_t *) a2);
+
 				break;
 			/* [Case 2] Terminate the current process */
 			case TERMINATEPROCESS:
@@ -142,33 +143,37 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 				if (CurrentProcess)
 					CurrentProcess->p_s.a1 = -1;
 
-				/* Call the scheduler */
-				scheduler();
 				break;
 			/* [Case 3] Perform a V operation on a semaphore */
 			case VERHOGEN:
 				verhogen((int *) a2);
+
 				break;
 			/* [Case 4] Perform a P operation on a semaphore */
 			case PASSEREN:
 				passeren((int *) a2);
+
 				break;
 			/* [Case 5] Get the CPU time */
 			case GETCPUTIME:
 				CurrentProcess->p_s.a1 = getCPUTime();
+
 				break;
 			case WAITCLOCK:
 				waitClock();
+
 				break;
 			case WAITIO:
 				CurrentProcess->p_s.a1 = waitIO((int) a2, (int) a3, (int) a4);
+
 				break;
 			case SPECTRAPVEC:
 				specTrapVec((int) a2, (state_t *) a3, (state_t *) a4);
+
 				break;
 			default:
 				/* If SYS5 has not been yet executed, the current process shall terminate */
-				if (CurrentProcess->exceptionState[SYS_BK_EXCEPTION] == 0)
+				if (!CurrentProcess->exceptionState[SYS_BK_EXCEPTION])
 				{
 					/* Terminate the current process */
 					terminateProcess();
@@ -176,9 +181,6 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 					/* Anomaly */
 					if (CurrentProcess)
 						CurrentProcess->p_s.a1 = -1;
-
-					/* Call the scheduler */
-					scheduler();
 				}
 				else
 				{
@@ -238,7 +240,7 @@ EXTERN void sysBpHandler()
 	saveCurrentState(SysBP_old, &(CurrentProcess->p_s));
 
 	/* Avoid endless loop of system calls */
-	CurrentProcess->p_s.pc += 4;
+	CurrentProcess->p_s.pc += WORD_SIZE;
 
 	/* Get status mode of the SYS/BP Old Area */
 	statusMode = SysBP_old->cpsr & STATUS_SYS_MODE;
@@ -246,42 +248,40 @@ EXTERN void sysBpHandler()
 	/* Get exception type */
 	exceptionType = CAUSE_EXCCODE_GET(SysBP_old->CP15_Cause);
 
-	/* [Case 1] It's a system call */
+	/* [Case 1] The exception is a system call */
 	if (exceptionType == EXC_SYSCALL)
 		systemCallHandler(exceptionType, statusMode);
-	/* [Case 2] It's a breakpoint */
+	/* [Case 2] The exception is a breakpoint */
 	else if (exceptionType == EXC_BREAKPOINT)
 		breakPointHandler(exceptionType, statusMode);
-	/* Anomaly */
 	else
-		PANIC();
+		PANIC(); /* Anomaly */
 }
 
 /**
 @brief (SYS1) Create a new process.
-@param statep Processor state from which create a new process.
+@param state Processor state from which create a new process.
 @return -1 in case of failure; PID in case of success.
 */
-EXTERN int createProcess(state_t *statep)
+EXTERN int createProcess(state_t *state)
 {
 	int i;
-	pcb_t *p;
+	pcb_t *process;
 
 	/* Allocate a new PCB */
-	if (!(p = allocPcb()))
-		return -1;
+	if (!(process = allocPcb()))
+		return -1; /* Failure */
 
 	/* Load processor state into process state */
-	saveCurrentState(statep, &(p->p_s));
+	saveCurrentState(state, &(process->p_s));
 
 	/* Update process and Pid counter */
 	ProcessCount++;
-	PidCount++;
-	p->p_pid = PidCount;
+	process->p_pid = ++PidCount;
 
 	/* Update process tree and process queue */
-	insertChild(CurrentProcess, p);
-	insertProcQ(&ReadyQueue, p);
+	insertChild(CurrentProcess, process);
+	insertProcQ(&ReadyQueue, process);
 
 	return PidCount;
 }
@@ -293,17 +293,10 @@ EXTERN int createProcess(state_t *statep)
 */
 HIDDEN void _terminateProcess(pcb_t *process)
 {
-	pcb_t *progeny;
-
-	/* As long as there are child processes */
+	/* As long as the process has children */
 	while (!emptyChild(process))
-	{
-		/* Remove first child */
-		progeny = removeChild(process);
-
-		/* Recursive call */
-		_terminateProcess(progeny);
-	}
+		/* Remove the first one and perform a recursive call */
+		_terminateProcess(removeChild(process));
 
 	/* Process blocked on a semaphore */
 	if (process->p_semAdd) 
@@ -314,10 +307,11 @@ HIDDEN void _terminateProcess(pcb_t *process)
 			/* Performs a V on the semaphore */
 			(*process->p_semAdd)++;
 
+			/* Extract the process from the semaphore */
 			outBlocked(process);
 		}
-		/* [Case 2] Process blocked on the pseudo-clock semaphore */
-		if (process->p_isBlocked)
+		/* [Case 2] Process blocked on the Pseudo-Clock semaphore */
+		if (process->p_semAdd == &PseudoClock)
 			/* Performs a V on the semaphore */
 			PseudoClock++;
 	}
@@ -364,7 +358,6 @@ EXTERN void verhogen(int *semaddr)
 		/* Insert process into the ready queue */
 		insertProcQ(&ReadyQueue, process);
 
-		/* Update p_isBlocked flag */
 		process->p_isBlocked = FALSE;
 	}
 }
@@ -413,9 +406,6 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 		/* Anomaly */
 		if (CurrentProcess)
 			CurrentProcess->p_s.a1 = -1;
-
-		/* Call scheduler */
-		scheduler();
 	}
 	else
 	{
@@ -423,7 +413,7 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 		CurrentProcess->exceptionState[type]++;
 		
 		/* [Case 1] SYS5 has been called for the first time */
-		if (CurrentProcess->exceptionState[type] > 1)
+		if (CurrentProcess->exceptionState[type] <= 1)
 		{
 			/* Save the contents of a2 and a3 to facilitate “passing up” 
 				handling of the respective exception */
@@ -439,9 +429,6 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 			/* Anomaly */
 			if (CurrentProcess)
 				CurrentProcess->p_s.a1 = -1;
-
-			/* Call scheduler */
-			scheduler();
 		}
 	}
 }
@@ -526,18 +513,16 @@ EXTERN unsigned int waitIO(int interruptLine, int deviceNumber, int reading)
 
 /*
 @brief TLB (Translation Look Aside Buffer) Exception Handling.
-@return void.
+@return Void.
 */
 EXTERN void tlbHandler()
 {
-	int ris;
-
 	/* If a process is running */
 	if (CurrentProcess)
-		/* Save TLB old area into the current process state */
+		/* Save TLB Old Area into the current process state */
 		saveCurrentState(TLB_old, &(CurrentProcess->p_s));
 	else
-		/* Call scheduler */
+		/* Otherwise call scheduler */
 		scheduler();
 
 	/* If SYS5 has not been called */
@@ -555,8 +540,10 @@ EXTERN void tlbHandler()
 	}
 	else
 	{
-		/* Save TLB Old Area into the current process state */
+		/* Otherwise save TLB Old Area into the current process state */
 		saveCurrentState(TLB_old, CurrentProcess->p_stateOldArea[TLB_EXCEPTION]);
+
+		/* Load the processor state in order to start execution */
 		LDST(CurrentProcess->p_stateNewArea[TLB_EXCEPTION]);
 	}
 }

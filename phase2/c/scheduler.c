@@ -3,9 +3,7 @@
 @note Process scheduler and deadlock detection.
 */
 
-#include "../e/scheduler.e"
-#include "../h/initial.h"
-#include "../../phase1/e/pcb.e"
+#include "../e/inclusions.e"
 
 /**
 @brief The function updates the CPU time of the running process and re-start the Timer Tick.
@@ -56,7 +54,7 @@ EXTERN void scheduler()
 			PANIC(); /* Anomaly */
 		}
 		
-		/* Extract first ready process */
+		/* Otherwise extract first ready process */
 		if (!(CurrentProcess = removeProcQ(&ReadyQueue)))
 			PANIC(); /* Anomaly */
 		

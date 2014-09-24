@@ -60,4 +60,4 @@ unsigned int setTIMER(unsigned int timer);
 unsigned int setCONTROL(unsigned int control);
 
 
-#endif //UARM_LIBURAM_H
+#endif

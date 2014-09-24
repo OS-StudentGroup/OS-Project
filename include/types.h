@@ -1,4 +1,3 @@
-// Types definitions
 #ifndef TYPES_H
 #define TYPES_H
 
@@ -7,7 +6,7 @@
 #include "uARMconst.h"
 #include "uARMtypes.h"
 
-// Process Control Block type
+/* Process Control Block type */
 typedef struct pcb_t
 {
 	struct pcb_t
@@ -30,12 +29,12 @@ typedef struct pcb_t
 	int p_isBlocked;							/**< Semaphore Flag */
 } pcb_t;
 
-// Semaphore Descriptor type
+/* Semaphore Descriptor type */
 typedef struct semd_t
 {
-	struct semd_t *s_next; 		// next element on the ASL
-	int *s_semAdd; 				// pointer to the semaphore
-	pcb_t *s_procQ; 			// tail pointer to a process queue
+	struct semd_t *s_next; 		/**<  next element on the ASL */
+	int *s_semAdd; 				/**<  pointer to the semaphore */
+	pcb_t *s_procQ; 			/**<  tail pointer to a process queue */
 } semd_t;
 
 /* Semaphore structure */

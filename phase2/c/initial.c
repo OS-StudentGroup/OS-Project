@@ -1,19 +1,31 @@
 /**
 @file initial.c
-@author
 @note This module implements main() and exports the nucleus’s global variables. (e.g. Process Count, device semaphores, etc.)
  */
 
-#include "../../phase1/h/asl.h"
-#include "../../phase1/e/pcb.e"
-#include "../../include/libuarm.h"
-#include "../../include/const.h"
-#include "../../include/arch.h"
-#include "../../include/uARMconst.h"
-#include "../e/exceptions.e"
-#include "../e/scheduler.e"
-#include "../h/initial.h"
+#include "../e/inclusions.e"
 
+EXTERN void test();
+
+/* Global variables declarations */
+EXTERN pcb_t *ReadyQueue;										/**< Process ready queue */
+EXTERN pcb_t *CurrentProcess;									/**< Pointer to the executing PCB */
+EXTERN U32 ProcessCount;										/**< Process counter */
+EXTERN U32 PidCount;											/**< PID counter */
+EXTERN U32 SoftBlockCount;										/**< Blocked process counter */
+EXTERN int StatusWordDev[STATUS_WORD_ROWS][STATUS_WORD_COLS];	/**< Device Status Word table */
+EXTERN SemaphoreStruct Semaphore;								/**< Device semaphores per line */
+EXTERN int PseudoClock;											/**< Pseudo-clock semaphore */
+EXTERN cpu_t ProcessTOD;										/**< Process start time */
+EXTERN int TimerTick;											/**< Tick timer */
+EXTERN cpu_t StartTimerTick;									/**< Pseudo-clock tick start time */
+
+/*
+@brief Populate a new processor state area.
+@param area Physical address of the area.
+@param handler Physical address of the handler.
+@return Void.
+*/
 HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 {
 	state_t *newArea;
@@ -33,7 +45,7 @@ HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 	newArea->cpsr = STATUS_SYS_MODE | STATUS_ALL_INT_DISABLE(newArea->cpsr);
 }
 
-void main(void)
+int main()
 {
 	pcb_t *init;
 	int i;
@@ -62,7 +74,7 @@ void main(void)
 		Semaphore.terminalR[i] =
 		Semaphore.terminalT[i] = 0;
 	
-	/* Initialize pseudo-clock semaphore */
+	/* Initialize Pseudo-Clock semaphore */
 	PseudoClock = 0;
 	
 	/* Initialize init method */
@@ -91,4 +103,8 @@ void main(void)
 
 	/* Call the scheduler */
 	scheduler();
+
+	/* Anomaly */
+	PANIC();
+	return -1;
 }

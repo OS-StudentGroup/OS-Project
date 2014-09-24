@@ -6,10 +6,8 @@
 #ifndef PCB_E
 #define PCB_E
 
-// Dependencies
 #include "../h/pcb.h"
 
-// External function declarations
 EXTERN pcb_t *mkEmptyProcQ(void);
 EXTERN int emptyProcQ(pcb_t *tp);
 EXTERN void insertProcQ(pcb_t **tp, pcb_t *p);

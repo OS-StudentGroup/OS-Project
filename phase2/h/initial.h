@@ -28,7 +28,7 @@ EXTERN void test(void);
 @param handler Physical address of the handler.
 @return Void.
 */
-HIDDEN void populate(memaddr area, memaddr handler);
+HIDDEN void populateArea(memaddr area, memaddr handler);
 
 /*
 @brief The entry point for Kaya which performs the nucleus initialization.

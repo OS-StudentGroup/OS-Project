@@ -20,9 +20,9 @@ HIDDEN int getDevice(int bitmap);
 @brief Performs a V on the given device semaphore.
 @param semaddr Address of the semaphore.
 @param status Device status.
-@return The unblocked process, or NULL.
+@return Void.
 */
-HIDDEN pcb_t *verhogenInt(int *semaddr, int status);
+HIDDEN void verhogenInt(int *semaddr, int status);
 
 /*
 @brief Acknowledge a pending interrupt on the Timer Click.

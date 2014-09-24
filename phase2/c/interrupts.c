@@ -16,6 +16,7 @@ HIDDEN const int DeviceCheckAddress[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
 /* Device Check Lines*/
 HIDDEN const int InterruptLine[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
 /*
 @brief Identify at which device a pending interrupt refers to.
 @param bitmap Bitmap of the pending interrupt.
@@ -32,11 +33,11 @@ HIDDEN int getDevice(int bitmap)
 @brief Performs a V on the given device semaphore.
 @param semaddr Address of the semaphore.
 @param status Device status.
-@return The unblocked process, or NULL.
+@return Void.
 */
-HIDDEN pcb_t *verhogenInt(int *semaddr, int status)
+HIDDEN void verhogenInt(int *semaddr, int status)
 {
-	pcb_t *process = NULL;
+	pcb_t *process;
 	
 	/* Performs a V on the semaphore */
 	(*semaddr)++;
@@ -51,8 +52,6 @@ HIDDEN pcb_t *verhogenInt(int *semaddr, int status)
 		process->p_s.a1 = status;
 		process->p_isBlocked = FALSE;
 	}
-	
-	return process;
 }
 
 /*
@@ -151,10 +150,10 @@ HIDDEN void devInterrupt(int cause)
 	/* Perform a V on the device semaphore */
 	switch (cause)
 	{
-		case (INT_DISK):	process = verhogenInt(&Semaphore.disk[deviceNumber], status->status);		break;
-		case (INT_TAPE):	process = verhogenInt(&Semaphore.tape[deviceNumber], status->status);		break;
-		case (INT_UNUSED):	process = verhogenInt(&Semaphore.network[deviceNumber], status->status);	break;
-		case (INT_PRINTER):	process = verhogenInt(&Semaphore.printer[deviceNumber], status->status);	break;
+		case (INT_DISK):	verhogenInt(&Semaphore.disk[deviceNumber], status->status);		break;
+		case (INT_TAPE):	verhogenInt(&Semaphore.tape[deviceNumber], status->status);		break;
+		case (INT_UNUSED):	verhogenInt(&Semaphore.network[deviceNumber], status->status);	break;
+		case (INT_PRINTER):	verhogenInt(&Semaphore.printer[deviceNumber], status->status);	break;
 	}
 
 	/* Identify the pending interrupt */

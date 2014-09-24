@@ -267,7 +267,7 @@
 
 #define CR 0x0a   /* carriage return as returned by the terminal */
 
-// hardware constants
+/* hardware constants */
 
 #define VM_PSEG_START   0x00008000
 #define VM_PSEG_TOP     0xF0000000
@@ -286,19 +286,19 @@
 #define ROMF_STACKBASE  0x00007FF0
 #define ROMF_STACKTOP   0x00008000
 
-// physical memory page frame size (in words)
+/* physical memory page frame size (in words) */
 #define FRAMESIZE	1024
 
-// KB per frame
+/* KB per frame */
 #define FRAMEKB	4
 
-// number of ASIDs
+/* number of ASIDs */
 #define MAXASID 256
 
-// eth packet size
+/* eth packet size */
 #define PACKETSIZE 1514
 
-// exception type constants (simulator internal coding)
+/* exception type constants (simulator internal coding) */
 #define NOEXCEPTION 	0
 #define MEMERROR     	1
 #define BUSERROR     	2
@@ -312,4 +312,4 @@
 #define COPROCEXCEPTION	10
 #define BPEXCEPTION		12
 
-#endif // UARMCONST_H
+#endif

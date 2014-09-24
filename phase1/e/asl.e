@@ -6,12 +6,10 @@
 #ifndef ASL_E
 #define ASL_E
 
-// Dependencies
 #include "../e/pcb.e"
 #include "../../include/const.h"
 #include "../../include/types.h"
 
-// External function declarations
 EXTERN void initASL(void);
 EXTERN int insertBlocked(int *semAdd, pcb_t *p);
 EXTERN pcb_t *removeBlocked(int *semAdd);

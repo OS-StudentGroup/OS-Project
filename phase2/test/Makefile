@@ -3,7 +3,7 @@
 # C compiler
 CC = arm-none-eabi-gcc
 # C compiler flags
-CFLAGS = -mcpu=arm7tdmi -c -o
+CFLAGS = -ansi -pedantic -Wall -c
 # Linker
 LD = arm-none-eabi-ld
 # UARM converter
@@ -31,38 +31,36 @@ all: uarm
 	@echo "Done!"
 # Converting ELF to UARM
 uarm: p2test
-	@echo "Converting ELF to UARM..."
+	@echo "Converting..."
 	$(UC) -k p2test
 
 # Linking
 p2test: p2test.o pcb.o asl.o initial.o scheduler.o exceptions.o interrupts.o
 	@echo "Linking..."
-	$(LD) -T $(LDSCRIPTS) -o p2test $(CRTSO) $(LIBUARM) p2test.o pcb.o asl.o initial.o scheduler.o exceptions.o interrupts.o
+	$(LD) -T $(LDSCRIPTS) $(CRTSO) p2test.o pcb.o asl.o initial.o scheduler.o exceptions.o interrupts.o $(LIBUARM) -o p2test
 
 # Compiling
 p2test.o: $(P2TEST)
-	@echo "Compiling p2test..."
-	$(CC) $(CFLAGS) p2test.o $(P2TEST)
+	$(CC) $(CFLAGS) $(P2TEST)
 
 initial.o: $(INITIAL)
-	$(CC) $(CFLAGS) initial.o $(INITIAL)
+	$(CC) $(CFLAGS) $(INITIAL)
 
 scheduler.o: $(SCHEDULER)
-	$(CC) $(CFLAGS) scheduler.o $(SCHEDULER)
+	$(CC) $(CFLAGS) $(SCHEDULER)
 
 exceptions.o: $(EXCEPTIONS)
-	$(CC) $(CFLAGS) exceptions.o $(EXCEPTIONS)
+	$(CC) $(CFLAGS) $(EXCEPTIONS)
 
 interrupts.o: $(INTERRUPTS)
-	$(CC) $(CFLAGS) interrupts.o $(INTERRUPTS)
+	$(CC) $(CFLAGS) $(INTERRUPTS)
 
 pcb.o: $(PCB)
-	@echo "Compiling PCB..."
-	$(CC) $(CFLAGS) pcb.o $(PCB)
+	$(CC) $(CFLAGS) $(PCB)
 
 asl.o: $(ASL)
-	@echo "Compiling ASL..."
-	$(CC) $(CFLAGS) asl.o $(ASL)
+	@echo "Compiling..."
+	$(CC) $(CFLAGS) $(ASL)
 
 # [3] CLEANING
 clean:

@@ -118,9 +118,7 @@
 /* End of memory mapped external device registers area */
 #define DEV_REG_END             (DEV_REG_START + N_EXT_IL * N_DEV_PER_IL * DEV_REG_SIZE)
 
-//MISSING: last part has been removed (Interrupt Routing Table and Multiprocessor support)
-
 #define CPUCTL_TPR_PRIORITY_MASK    0x0000000f
 #define IRT_POLICY_FIXED   0
 
-#endif //UARM_ARCH_H
+#endif
