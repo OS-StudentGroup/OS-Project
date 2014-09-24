@@ -4,21 +4,19 @@
  */
 
 #include "../e/inclusions.e"
+#include "../../include/types.h"
 
 EXTERN void test();
 
-/* Global variables declarations */
-EXTERN pcb_t *ReadyQueue;										/**< Process ready queue */
-EXTERN pcb_t *CurrentProcess;									/**< Pointer to the executing PCB */
-EXTERN U32 ProcessCount;										/**< Process counter */
-EXTERN U32 PidCount;											/**< PID counter */
-EXTERN U32 SoftBlockCount;										/**< Blocked process counter */
-EXTERN int StatusWordDev[STATUS_WORD_ROWS][STATUS_WORD_COLS];	/**< Device Status Word table */
-EXTERN SemaphoreStruct Semaphore;								/**< Device semaphores per line */
-EXTERN int PseudoClock;											/**< Pseudo-clock semaphore */
-EXTERN cpu_t ProcessTOD;										/**< Process start time */
-EXTERN int TimerTick;											/**< Tick timer */
-EXTERN cpu_t StartTimerTick;									/**< Pseudo-clock tick start time */
+pcb_t *ReadyQueue;
+pcb_t *CurrentProcess;
+U32 ProcessCount;
+U32 SoftBlockCount;
+SemaphoreStruct Semaphore;
+int PseudoClock;
+U32 ProcessTOD;
+int TimerTick;
+U32 StartTimerTick;
 
 /*
 @brief Populate a new processor state area.
@@ -42,7 +40,7 @@ HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 	
 	/* Masked interrupts; Virtual Memory off; Kernel Mode on */
 	newArea->CP15_Control &= ~(0x1);
-	newArea->cpsr = STATUS_SYS_MODE | STATUS_ALL_INT_DISABLE(newArea->cpsr);
+	newArea->cpsr = STATUS_ALL_INT_DISABLE(newArea->cpsr) | STATUS_SYS_MODE;
 }
 
 int main()
@@ -63,7 +61,7 @@ int main()
 	/* Initialize global variables */
 	ReadyQueue = mkEmptyProcQ();
 	CurrentProcess = NULL;
-	ProcessCount = SoftBlockCount = PidCount = TimerTick = 0;
+	ProcessCount = SoftBlockCount = TimerTick = PseudoClock = 0;
 	
 	/* Initialize device semaphores */
 	for (i = 0; i < DEV_PER_INT; i++)
@@ -73,10 +71,7 @@ int main()
 		Semaphore.printer[i] =
 		Semaphore.terminalR[i] =
 		Semaphore.terminalT[i] = 0;
-	
-	/* Initialize Pseudo-Clock semaphore */
-	PseudoClock = 0;
-	
+
 	/* Initialize init method */
 	if (!(init = allocPcb()))
 		PANIC(); /* Anomaly */
@@ -90,14 +85,13 @@ int main()
 	
 	/* Initialize Program Counter with the test process */
 	init->p_s.pc = (memaddr) test;
-	
-	/* Initialize Process Id */
-	init->p_pid = ++PidCount;
 
 	/* Insert init in ProcQ */
 	insertProcQ(&ReadyQueue, init);
-	ProcessCount++;
 	
+	/* Initialize Process Id */
+	ProcessCount++;
+
 	/* Start the timer tick */
 	StartTimerTick = getTODLO();
 
@@ -106,5 +100,5 @@ int main()
 
 	/* Anomaly */
 	PANIC();
-	return -1;
+	return 0;
 }

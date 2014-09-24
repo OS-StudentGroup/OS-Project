@@ -11,7 +11,7 @@ In case there is not a running process, the function performs deadlock detection
 the CPU time and starts the first process in the Ready Queue.
 @return Void.
 */
-EXTERN void scheduler()
+void scheduler()
 {
 	/* [Case 1] There is a running process */
 	if (CurrentProcess)
@@ -37,8 +37,8 @@ EXTERN void scheduler()
 		if (emptyProcQ(ReadyQueue))
 		{
 			/* If there are no more processes then halt the system */
-			if (ProcessCount == 0)
-				HALT();
+			if (ProcessCount == 0){tprint("ciao");
+				HALT();}
 			/* Deadlock Detection */
 			if (ProcessCount > 0 && SoftBlockCount == 0)
 				PANIC();

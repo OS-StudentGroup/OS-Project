@@ -20,8 +20,6 @@ typedef unsigned char U8;
 typedef signed char S8;
 
 typedef unsigned int memaddr;
-typedef U32 cpu_t;
-typedef U32 pid_t;
 
 #endif
 

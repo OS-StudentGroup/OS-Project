@@ -3,14 +3,8 @@
 @note SYS/Bp Exception Handling
 */
 
-#include "../../phase1/h/asl.h"
-#include "../../phase1/e/pcb.e"
-#include "../e/exceptions.e"
-#include "../h/initial.h"
-#include "../e/interrupts.e"
-#include "../e/scheduler.e"
-#include "../../include/libuarm.h"
-
+#include "../e/inclusions.e"
+#define SPECTRAPVEC 5
 HIDDEN state_t *SysBP_old = (state_t *) SYSBK_OLDAREA;		/* System Call/Break Point Old Area */
 HIDDEN state_t *TLB_old = (state_t *) TLB_OLDAREA;			/* TLB Old Area */
 HIDDEN state_t *PgmTrap_old = (state_t *) PGMTRAP_OLDAREA;	/* Program Trap Old Area */
@@ -53,7 +47,7 @@ by one the number of processes in the system currently blocked and waiting for a
 @param semaddr Semaphore's address.
 @return Void.
 */
-HIDDEN void passerenIO(int *semaddr)
+EXTERN void passerenIO(int *semaddr)
 {
 	/* Perform a P on the semaphore */
 	if (--(*semaddr) < 0)
@@ -96,8 +90,9 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 		else
 		{
 			/* [Case 1.2.1] SYS5 has not been executed */
-			if (!CurrentProcess->exceptionState[SYS_BK_EXCEPTION])
+			if (CurrentProcess->exceptionState[SYS_BK_EXCEPTION] == 0)
 			{
+				tprint("systemCallHandler");
 				/* Terminate the current process */
 				terminateProcess();
 
@@ -137,6 +132,7 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 				break;
 			/* [Case 2] Terminate the current process */
 			case TERMINATEPROCESS:
+				tprint("Kernel Mode");
 				terminateProcess();
 
 				/* Anomaly */
@@ -175,6 +171,7 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 				/* If SYS5 has not been yet executed, the current process shall terminate */
 				if (!CurrentProcess->exceptionState[SYS_BK_EXCEPTION])
 				{
+					tprint("f SYS5 has not been yet exec");
 					/* Terminate the current process */
 					terminateProcess();
 
@@ -207,6 +204,7 @@ HIDDEN void breakPointHandler(int exceptionType, int statusMode)
 	/* If SYS5 has not been yet executed, then the current process shall terminate */
 	if (CurrentProcess->exceptionState[SYS_BK_EXCEPTION] == 0)
 	{
+		tprint("qua");
 		/* Terminate the current process */
 		terminateProcess();
 
@@ -252,8 +250,8 @@ EXTERN void sysBpHandler()
 	if (exceptionType == EXC_SYSCALL)
 		systemCallHandler(exceptionType, statusMode);
 	/* [Case 2] The exception is a breakpoint */
-	else if (exceptionType == EXC_BREAKPOINT)
-		breakPointHandler(exceptionType, statusMode);
+	else if (exceptionType == EXC_BREAKPOINT){tprint("kk");
+		breakPointHandler(exceptionType, statusMode);}
 	else
 		PANIC(); /* Anomaly */
 }
@@ -265,7 +263,6 @@ EXTERN void sysBpHandler()
 */
 EXTERN int createProcess(state_t *state)
 {
-	int i;
 	pcb_t *process;
 
 	/* Allocate a new PCB */
@@ -276,14 +273,13 @@ EXTERN int createProcess(state_t *state)
 	saveCurrentState(state, &(process->p_s));
 
 	/* Update process and Pid counter */
-	ProcessCount++;
-	process->p_pid = ++PidCount;
+	process->p_pid = ++ProcessCount;
 
 	/* Update process tree and process queue */
 	insertChild(CurrentProcess, process);
 	insertProcQ(&ReadyQueue, process);
 
-	return PidCount;
+	return ProcessCount;
 }
 
 /*
@@ -316,6 +312,7 @@ HIDDEN void _terminateProcess(pcb_t *process)
 			PseudoClock++;
 	}
 	
+	/* Decrease the number of active processes */
 	ProcessCount--;
 	
 	/* Insert the process block into the pcbFree list */
@@ -423,6 +420,7 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 		/* [Case 2] SYS5 has been called for the second time */
 		else
 		{
+			tprint("SYS5 has been called for the second time");
 			/* Terminate the process */
 			terminateProcess();
 
@@ -437,7 +435,7 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 @brief (SYS6) Retrieve the CPU time of the current process.
 @return CPU time of the current process.
 */
-EXTERN cpu_t getCPUTime()
+EXTERN U32 getCPUTime()
 {
 	/* Perform a last update of the CPU time */
 	CurrentProcess->p_cpu_time += getTODLO() - ProcessTOD;

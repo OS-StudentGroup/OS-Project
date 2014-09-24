@@ -21,12 +21,12 @@ typedef struct pcb_t
 	/* Process management */
 	state_t p_s;								/**< Processor state */
 	S32 *p_semAdd;								/**< Pointer to semaphore on which process blocked */
-	int p_pid;									/**< Process id */
-	cpu_t p_cpu_time;							/**< Process CPU time */
-	int exceptionState[NUM_EXCEPTIONS];			/**< Exception State Vector */
+	U32 p_pid;									/**< Process id */
+	U32 p_cpu_time;								/**< Process CPU time */
+	U32 exceptionState[NUM_EXCEPTIONS];			/**< Exception State Vector */
 	state_t *p_stateOldArea[NUM_EXCEPTIONS];	/**< Old processor states, one for each exception type */
 	state_t *p_stateNewArea[NUM_EXCEPTIONS];	/**< New processor states, one for each exception type */
-	int p_isBlocked;							/**< Semaphore Flag */
+	U32 p_isBlocked;							/**< Semaphore Flag */
 } pcb_t;
 
 /* Semaphore Descriptor type */
@@ -37,7 +37,7 @@ typedef struct semd_t
 	pcb_t *s_procQ; 			/**<  tail pointer to a process queue */
 } semd_t;
 
-/* Semaphore structure */
+/* Semaphores structure */
 typedef struct
 {
 	int disk[DEV_PER_INT];

@@ -4,18 +4,36 @@
 */
 
 #include "../e/inclusions.e"
+#include "../../include/types.h"
 
 /* Interrupt Old Area */
 HIDDEN state_t *InterruptOldArea = (state_t *) INT_OLDAREA;
 
-/* Device Base Address */
-HIDDEN memaddr DeviceBaseAddress;
-
 /* Device Check Addresses */
-HIDDEN const int DeviceCheckAddress[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+HIDDEN const int DeviceCheckAddress[8] =
+{
+		DEV_CHECK_ADDRESS_0,
+		DEV_CHECK_ADDRESS_1,
+		DEV_CHECK_ADDRESS_2,
+		DEV_CHECK_ADDRESS_3,
+		DEV_CHECK_ADDRESS_4,
+		DEV_CHECK_ADDRESS_5,
+		DEV_CHECK_ADDRESS_6,
+		DEV_CHECK_ADDRESS_7
+ };
 
 /* Device Check Lines*/
-HIDDEN const int InterruptLine[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+HIDDEN const int InterruptLine[8] =
+{
+		IL_IPI,
+		IL_CPUTIMER,
+		IL_TIMER,
+		IL_DISK,
+		IL_TAPE,
+		IL_ETHERNET,
+		IL_PRINTER,
+		IL_TERMINAL
+};
 
 /*
 @brief Identify at which device a pending interrupt refers to.
@@ -24,9 +42,19 @@ HIDDEN const int InterruptLine[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 */
 HIDDEN int getDevice(int bitmap)
 {
-	int i;
-	for (i = 0; bitmap != (bitmap | DeviceCheckAddress[i]); i++);
-	return InterruptLine[i];
+	/*int i;
+	for (i = 0; bitmap != (bitmap | DeviceCheckAddress[i]) && i < 7; i++);
+	return InterruptLine[i];*/
+
+
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_0)) return IL_IPI;
+	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_1)) return IL_CPUTIMER;
+	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_2)) return IL_TIMER;
+	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_3)) return IL_DISK;
+	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_4)) return IL_TAPE;
+	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_5)) return IL_ETHERNET;
+	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_6)) return IL_PRINTER;
+	else return IL_TERMINAL;
 }
 
 /*
@@ -50,7 +78,7 @@ HIDDEN void verhogenInt(int *semaddr, int status)
 
 		SoftBlockCount--;
 		process->p_s.a1 = status;
-		process->p_isBlocked = FALSE;
+		/* process->p_isBlocked = FALSE;*/
 	}
 }
 
@@ -73,7 +101,7 @@ HIDDEN void intTimer()
 		if (PseudoClock < 0)
 		{
 			/* Unblock all processes */
-			for (; PseudoClock < 0; PseudoClock++)
+			while (PseudoClock < 0)
 			{
 				/* If there is a blocked process */
 				if ((process = removeBlocked(&PseudoClock)))
@@ -84,6 +112,7 @@ HIDDEN void intTimer()
 					process->p_isBlocked = FALSE;
 					SoftBlockCount--;
 				}
+				PseudoClock++;
 			}
 		}
 		/* [Case 1.2] There is at most one blocked process */
@@ -120,7 +149,7 @@ HIDDEN void intTimer()
 		SoftBlockCount++;
 
 		/* Update elapsed time */
-		TimerTick += (getTODLO() - StartTimerTick);
+		TimerTick += getTODLO() - StartTimerTick;
 		StartTimerTick = getTODLO();
 	}
 	/* [Case 3] There is not a running process */
@@ -135,7 +164,6 @@ HIDDEN void intTimer()
 HIDDEN void devInterrupt(int cause)
 {
 	int *deviceBitmap, deviceNumber;
-	pcb_t *process;
 	dtpreg_t *status;
 
 	/* Get the starting address of the device bitmap */
@@ -167,7 +195,6 @@ HIDDEN void devInterrupt(int cause)
 HIDDEN void intTerminal()
 {
 	int *deviceBitmap, deviceNumber;
-	pcb_t *process;
 	termreg_t *status;
 
 	/* Get the starting address of the device bitmap */

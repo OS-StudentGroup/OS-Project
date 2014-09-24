@@ -1,12 +1,12 @@
-// PCB handling functions
+/* PCB handling functions */
 
-// Dependencies
+/* Dependencies */
 #include "../h/pcb.h"
 
-// Internal function declarations
-HIDDEN inline int hasOneProcBlk(pcb_t *tp);
+/* Internal function declarations */
+HIDDEN int hasOneProcBlk(pcb_t *tp);
 
-// Pointer to the head of the pcbFree list
+/* Pointer to the head of the pcbFree list */
 HIDDEN pcb_t *pcbFree_h;
 
 /*
@@ -15,7 +15,7 @@ HIDDEN pcb_t *pcbFree_h;
  * Output:  TRUE, if ProcQ has only one ProcBlk
  *          FALSE, else
 */
-HIDDEN inline int hasOneProcBlk(pcb_t *tp)
+HIDDEN int hasOneProcBlk(pcb_t *tp)
 {
 	return tp->p_next == tp;
 }
@@ -46,14 +46,21 @@ EXTERN pcb_t *allocPcb(void)
 
 	output = removeProcQ(&pcbFree_h);
 
-	// [Case] pcbFree is not empty
+	/* [Case] pcbFree is not empty */
 	if (output)
 	{
+		int i;
 		output->p_next = NULL;
 		output->p_prnt = NULL;
 		output->p_child = NULL;
 		output->p_sib = NULL;
 		output->p_semAdd = NULL;
+		output->p_isBlocked = FALSE;
+		for (i = 0; i < NUM_EXCEPTIONS; i++)
+		{
+			output->exceptionState[i] = 0;
+			output->p_stateOldArea[i] = output->p_stateNewArea[i] = NULL;
+		}
 	}
 
 	return output;
@@ -62,7 +69,7 @@ EXTERN pcb_t *allocPcb(void)
 /*
  * Initialize the pcbFree list to contain all the elements of the
  * static array of MAXPROC ProcBlk’s.
- * This method will be called only once during data structure initialization.
+ * This method wstructureill be called only once during data structure initialization.
  *
  * Computational Cost := O(n) : n = "max number of concurrent processes"
 */
@@ -112,16 +119,16 @@ EXTERN int emptyProcQ(pcb_t *tp)
 */
 EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 {
-	// Pre-conditions: p is not NULL
+	/* Pre-conditions: p is not NULL */
 	if (!p) return;
 
-	// [Case 1] ProcQ is empty
+	/* [Case 1] ProcQ is empty */
 	if (emptyProcQ(*tp))
 	{
 		*tp = p;
 		(*tp)->p_next = *tp;
 	}
-	// [Case 2] ProcQ is not empty
+	/* [Case 2] ProcQ is not empty */
 	else
 	{
 		p->p_next = (*tp)->p_next;
@@ -143,16 +150,16 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 {
 	pcb_t *output;
 
-	// Pre-conditions: ProcQ is not empty
+	/* Pre-conditions: ProcQ is not empty */
 	if (emptyProcQ(*tp)) return NULL;
 
-	// [Case 1] ProcQ has 1 ProcBlk
+	/* [Case 1] ProcQ has 1 ProcBlk */
 	if (hasOneProcBlk(*tp))
 	{
 		output = *tp;
 		*tp = mkEmptyProcQ();
 	}
-	// [Case 2] ProcQ has >1 ProcBlk
+	/* [Case 2] ProcQ has >1 ProcBlk */
 	else
 	{
 		output = (*tp)->p_next;
@@ -176,25 +183,25 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 {
 	pcb_t *output, *it;
 
-	// Pre-conditions: ProcQ is not empty and p is not NULL
+	/* Pre-conditions: ProcQ is not empty and p is not NULL */
 	if (emptyProcQ(*tp) || !p) return NULL;
 
-	// [Case 1] ProcQ has 1 ProcBlk
+	/* [Case 1] ProcQ has 1 ProcBlk */
 	if (hasOneProcBlk(*tp))
 	{
-		// [Case 1.1] p is in ProcQ
+		/* [Case 1.1] p is in ProcQ */
 		if (*tp == p)
 		{
 			output = p;
 			*tp = mkEmptyProcQ();
 		}
-		// [Case 1.2] p is not in ProcQ
+		/* [Case 1.2] p is not in ProcQ */
 		else
 		{
 			output = NULL;
 		}
 	}
-	// [Case 2] ProcQ has >1 ProcBlk
+	/* [Case 2] ProcQ has >1 ProcBlk */
 	else
 	{
 		/* Iterate PCB until:
@@ -204,21 +211,21 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 			 it != *tp && it->p_next != p;
 			 it = it->p_next);
 
-		// [Case 2.1] p is in ProcQ
+		/* [Case 2.1] p is in ProcQ */
 		if (it->p_next == p)
 		{
 			output = p;
 
-			// [SubCase] p is in the tail
+			/* [SubCase] p is in the tail */
 			if (it->p_next == *tp)
 			{
-				// Update the tail-pointer
+				/* Update the tail-pointer */
 				*tp = it;
 			}
 
 			it->p_next = it->p_next->p_next;
 		}
-		// [Case 2.2] p is not in ProcQ
+		/* [Case 2.2] p is not in ProcQ */
 		else
 		{
 			output = NULL;
@@ -251,15 +258,15 @@ EXTERN int emptyChild(pcb_t *p)
 {
 	int output;
 
-	// Pre-conditions: p is not NULL
+	/* Pre-conditions: p is not NULL */
 	if (!p) return TRUE;
 
-	// [Case 1] p has children
+	/* [Case 1] p has children */
 	if (p->p_child)
 	{
 		output = FALSE;
 	}
-	// [Case 2] p has no children
+	/* [Case 2] p has no children */
 	else
 	{
 		output = TRUE;
@@ -276,9 +283,7 @@ EXTERN int emptyChild(pcb_t *p)
 */
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 {
-	pcb_t *tmp;
-
-	// Pre-conditions: prnt and p are not NULL
+	/* Pre-conditions: prnt and p are not NULL */
 	if (!prnt || !p) return;
 
 	p->p_sib = prnt->p_child;
@@ -298,7 +303,7 @@ EXTERN pcb_t *removeChild(pcb_t *p)
 {
 	pcb_t *output;
 
-	// Pre-conditions: p has children
+	/* Pre-conditions: p has children */
 	if (emptyChild(p)) return NULL;
 
 	output = p->p_child;
@@ -324,18 +329,18 @@ EXTERN pcb_t *outChild(pcb_t *p)
 {
 	pcb_t *it;
 
-	// Pre-conditions: p is not NULL and has parent
+	/* Pre-conditions: p is not NULL and has parent */
 	if (!p || !p->p_prnt) return NULL;
 
-	// [Case 1] p is the first child
+	/* [Case 1] p is the first child */
 	if (p->p_prnt->p_child == p)
 	{
 		p->p_prnt->p_child = p->p_sib;
 	}
-	// [Case 2] p is not the first child
+	/* [Case 2] p is not the first child */
 	else
 	{
-		// Iterate the children until the child before p is reached
+		/* Iterate the children until the child before p is reached */
 		for (it = p->p_prnt->p_child;
 			 it->p_sib != p;
 			 it = it->p_sib);
