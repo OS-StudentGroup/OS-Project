@@ -1,7 +1,8 @@
 /*
 @file initial.e
-@brief Esternal definitions for initial.c
+@brief External definitions for initial.c
 */
+
 #include "../../include/uARMconst.h"
 #include "../../include/types.h"
 

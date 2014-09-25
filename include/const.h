@@ -18,9 +18,9 @@
 #define WORD_SIZE 4
 
 /* SYS5 mnemonic constant */
-#define SPECPGMT 0
+/*#define SPECPGMT 0
 #define SPECTLB 1
-#define SPECSYSBP 2
+#define SPECSYSBP 2*/
 #define SPECTRAPVEC 5
 
 /* General purpose constants */

@@ -1,7 +1,7 @@
 /* PCB handling functions */
 
 /* Dependencies */
-#include "../e/pcb.e"
+#include "../h/pcb.h"
 
 /* Internal function declarations */
 HIDDEN int hasOneProcBlk(pcb_t *tp);
