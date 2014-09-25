@@ -92,7 +92,6 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 			/* [Case 1.2.1] SYS5 has not been executed */
 			if (CurrentProcess->exceptionState[SYS_BK_EXCEPTION] == 0)
 			{
-				tprint("systemCallHandler");
 				/* Terminate the current process */
 				terminateProcess();
 
@@ -121,63 +120,55 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 		U32 a2 = SysBP_old->a2;
 		U32 a3 = SysBP_old->a3;
 		U32 a4 = SysBP_old->a4;
+
 		/* Identify and handle the system call */
 		switch (SysBP_old->a1)
 		{
 			/* [Case 1] Create a new process */
 			case CREATEPROCESS:
-        tprint("create");
 				CurrentProcess->p_s.a1 = createProcess((state_t *) a2);
-
 				break;
+
 			/* [Case 2] Terminate the current process */
 			case TERMINATEPROCESS:
-				tprint("Kernel Mode");
 				terminateProcess();
 
 				/* Anomaly */
 				if (CurrentProcess)
 					CurrentProcess->p_s.a1 = -1;
-
 				break;
+
 			/* [Case 3] Perform a V operation on a semaphore */
 			case VERHOGEN:
-       /* tprint("Verhogen"); */
 				verhogen((int *) a2);
 
 				break;
 			/* [Case 4] Perform a P operation on a semaphore */
 			case PASSEREN:
-       /* tprint("Passeren"); */
 				passeren((int *) a2);
-
 				break;
+
 			/* [Case 5] Get the CPU time */
 			case GETCPUTIME:
-       /*  tprint("GetCPUtime"); */
 				CurrentProcess->p_s.a1 = getCPUTime();
-
 				break;
+
 			case WAITCLOCK:
-        /* tprint("WaitClock"); */
 				waitClock();
-
 				break;
+
 			case WAITIO:
-         tprint("WaitIO");
 				CurrentProcess->p_s.a1 = waitIO((int) a2, (int) a3, (int) a4);
-
 				break;
+
 			case SPECTRAPVEC:
-        tprint("SPECTRA");
 				specTrapVec((int) a2, (state_t *) a3, (state_t *) a4);
-
 				break;
+
 			default:
 				/* If SYS5 has not been yet executed, the current process shall terminate */
 				if (!CurrentProcess->exceptionState[SYS_BK_EXCEPTION])
 				{
-					tprint("f SYS5 has not been yet exec");
 					/* Terminate the current process */
 					terminateProcess();
 
@@ -187,7 +178,6 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 				}
 				else
 				{
-        tprint("ELSE");
 					/* Otherwise save SYS/BP Old Area in the current process Old Area */
 					saveCurrentState(SysBP_old, CurrentProcess->p_stateOldArea[SYS_BK_EXCEPTION]);
 
@@ -195,6 +185,7 @@ HIDDEN void systemCallHandler(int exceptionType, int statusMode)
 					LDST(CurrentProcess->p_stateNewArea[SYS_BK_EXCEPTION]);
 				}
 		}
+
 		/* Call the scheduler */
 		scheduler();
 	}
@@ -384,8 +375,6 @@ EXTERN void passeren(int *semaddr)
 		CurrentProcess->p_isBlocked = TRUE;
 		CurrentProcess = NULL;
 	}
-
-
 }
 
 /*

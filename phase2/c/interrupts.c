@@ -42,19 +42,9 @@ HIDDEN const int InterruptLine[8] =
 */
 HIDDEN int getDevice(int bitmap)
 {
-	/*int i;
+	int i;
 	for (i = 0; bitmap != (bitmap | DeviceCheckAddress[i]) && i < 7; i++);
-	return InterruptLine[i];*/
-
-
-	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_0)) return IL_IPI;
-	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_1)) return IL_CPUTIMER;
-	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_2)) return IL_TIMER;
-	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_3)) return IL_DISK;
-	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_4)) return IL_TAPE;
-	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_5)) return IL_ETHERNET;
-	else if (bitmap == (bitmap | DEV_CHECK_ADDRESS_6)) return IL_PRINTER;
-	else return IL_TERMINAL;
+	return InterruptLine[i];
 }
 
 /*

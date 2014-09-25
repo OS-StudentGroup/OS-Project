@@ -31,9 +31,9 @@
  *    Modified by Davide Brini on Nov 02, 2004
  */
 
-#include "../h/const.h"
-#include "../h/types.h"
-#include "../h/libuarm.h"
+#include "../../include/const.h"
+#include "../../include/types.h"
+#include "../../include/libuarm.h"
 #include "../h/pcb.h"
 #include "../h/asl.h"
 

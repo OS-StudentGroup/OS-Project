@@ -121,9 +121,7 @@ EXTERN void initASL(void)
 	int i;
 
 	for (i = 0; i < MAXPROC; i++)
-	{
 		semdTable[i].s_next = &semdTable[i + 1];
-	}
 	semdTable[MAXPROC].s_next = NULL;
 
 	/* semdTable[0] is the dummy header for semdFree */
@@ -132,6 +130,10 @@ EXTERN void initASL(void)
 	/* semdTable[MAXPROC + 1] is the dummy header for ASL */
 	semdTable[MAXPROC + 1].s_next = NULL;
 	semd_h = &semdTable[MAXPROC + 1];
+
+	semd_h->s_next = NULL;
+	semd_h->s_semAdd = NULL;
+	semd_h->s_procQ = mkEmptyProcQ();
 }
 
 /*
@@ -173,8 +175,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 		/* [Case 2.1] semdFree is not empty */
 		if (sem)
 		{
-			sem->s_semAdd = semAdd;
-			p->p_semAdd = semAdd;
+			sem->s_semAdd = p->p_semAdd = semAdd;
 			insertProcQ(&sem->s_procQ, p);
 			addToASL(sem);
 
@@ -182,9 +183,7 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 		}
 		/* [Case 2.2] semdFree is empty */
 		else
-		{
 			output = TRUE;
-		}
 	}
 
 	return output;
@@ -217,16 +216,12 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 
 		/* [SubCase] ProcQ is now empty */
 		if (emptyProcQ(sem->s_next->s_procQ))
-		{
 			/* Deallocate the semaphore */
 			freeSemaphore(sem);
-		}
 	}
 	/* [Case 2] semAdd is not in ASL */
 	else
-	{
 		output = NULL;
-	}
 
 	return output;
 }
@@ -247,7 +242,7 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	semd_t *sem;
 
 	/* Pre-conditions: p is not NULL */
-	if (!p) return NULL;
+	if (!p || !p->p_semAdd) return NULL;
 
 	sem = findSemaphore(p->p_semAdd);
 
@@ -262,9 +257,7 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	}
 	/* [Case 2] semAdd is not in ASL */
 	else
-	{
 		output = NULL;
-	}
 
 	return output;
 }
@@ -285,18 +278,12 @@ EXTERN pcb_t *headBlocked(int *semAdd)
 	/* Pre-conditions: semAdd is not NULL */
 	if (!semAdd) return NULL;
 
-	sem = findSemaphore(semAdd);
-
 	/* [Case 1] semAdd is in ASL */
-	if (sem)
-	{
+	if ((sem = findSemaphore(semAdd)))
 		output = headProcQ(sem->s_next->s_procQ);
-	}
 	/* [Case 2] semAdd is not in ASL */
 	else
-	{
 		output = NULL;
-	}
 
 	return output;
 }

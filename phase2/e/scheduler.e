@@ -3,4 +3,4 @@
 @brief External definitions for scheduler.c
 */
  
-void scheduler();
+EXTERN void scheduler();

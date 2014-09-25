@@ -12,7 +12,7 @@ pcb_t *ReadyQueue;
 pcb_t *CurrentProcess;
 U32 ProcessCount;
 U32 SoftBlockCount;
-SemaphoreStruct Semaphore;
+SemDevices Semaphore;
 int PseudoClock;
 U32 ProcessTOD;
 int TimerTick;
@@ -38,9 +38,14 @@ HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 	newArea->pc = handler;
 	newArea->sp = RAM_TOP;
 	
-	/* Masked interrupts; Virtual Memory off; Kernel Mode on */
+	/* Disable Virtual Memory */
 	newArea->CP15_Control &= ~(0x1);
-	newArea->cpsr = STATUS_ALL_INT_DISABLE(newArea->cpsr) | STATUS_SYS_MODE;
+
+	/* Disable interrupts */
+	newArea->cpsr = STATUS_ALL_INT_DISABLE(newArea->cpsr);
+
+	/* Activate Kernel Mode */
+	newArea->cpsr |= STATUS_SYS_MODE;
 }
 
 int main()
@@ -76,10 +81,15 @@ int main()
 	if (!(init = allocPcb()))
 		PANIC(); /* Anomaly */
 	
-	/* Enable interrupts; enable Kernel-Mode; disable Virtual Memory */
+	/* Disable Virtual Memory */
 	init->p_s.CP15_Control &= ~(0x1);
-	init->p_s.cpsr =  STATUS_SYS_MODE | STATUS_ALL_INT_ENABLE(init->p_s.cpsr);
 	
+	/* Enable interrupts */
+	init->p_s.cpsr = STATUS_ALL_INT_ENABLE(init->p_s.cpsr);
+
+	/* Activate Kernel Mode */
+	init->p_s.cpsr |= STATUS_SYS_MODE;
+
 	/* Initialize Stack Pointer */
 	init->p_s.sp = RAM_TOP - BUS_REG_RAM_SIZE;
 	
