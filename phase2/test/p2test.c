@@ -32,14 +32,14 @@
  * 		Modified by Marco Melletti 2014
  */
 
-#include "../../include/uARMconst.h"
-#include "../../include/uARMtypes.h"
+#include </usr/include/uarm/uARMconst.h>
+#include </usr/include/uarm/uARMtypes.h>
 #include "../../include/base.h"
-#include "../../include/libuarm.h"
+#include "../../include/const.h"
+#include </usr/include/uarm/libuarm.h>
 
 typedef unsigned int devregtr;
-/* if these are not defined */
-typedef U32 cpu_t;
+
 
 /* hardware constants */
 #define PRINTCHR	2
@@ -59,8 +59,8 @@ typedef U32 cpu_t;
 #define KUPBITON		0x8
 #define KUPBITOFF		0xFFFFFFF7
 
-#define MINLOOPTIME		10000
-#define LOOPNUM 		10000
+#define MINLOOPTIME		100
+#define LOOPNUM 		100
 
 #define CLOCKLOOP		10
 #define MINCLOCKLOOP	3000	
@@ -118,28 +118,34 @@ unsigned int p5Stack;	/* so we can allocate new stack for 2nd p5 */
 int creation = 0; 				/* return code for SYSCALL invocation */
 memaddr *p5MemLocation = (memaddr *) 0x34;		/* To cause a p5 trap */
 
-void	p2(),p3(),p4(),p5(),p5a(),p5b(),p6(),p7(),p7a(),p5prog(),p5mm();
+void	p2(),p3(),p4(),p5(),p5a(),p5b(),p6(),p7(),p5prog(),p5mm();
 void	p5sys(),p8root(),child1(),child2(),p8leaf();
 
 /* a procedure to print on terminal 0 */
 void print(char *msg) {
+
 	char * s = msg;
 	devregtr * base = (devregtr *) (TERM0ADDR);
 	devregtr status;
+	
 	SYSCALL(PASSEREN, (int)&term_mut, 0, 0);				/* get term_mut lock */
+	
 	while (*s != '\0') {
 	  /* Put "transmit char" command+char in term0 register (3rd word). This 
 		   actually starts the operation on the device! */
 		*(base + 3) = PRINTCHR | (((devregtr) *s) << BYTELEN);
 		
-		/* Wait for I/O completion (SYS8) */
+		/* Wait I/O completion (SYS8) */
 		status = SYSCALL(WAITIO, INT_TERMINAL, 0, FALSE);
 		
-		if ((status & TERMSTATMASK) != TRANSM)
-			PANIC();
+
+		if ((status & TERMSTATMASK) != TRANSM){
+		tprint("CAZZO");
+			PANIC();}
 			
-		if (((status & TERMCHARMASK) >> BYTELEN) != *s)
-			PANIC();
+		if (((status & TERMCHARMASK) >> BYTELEN) != *s){
+		tprint("FALLO");
+			PANIC();}
 
 		s++;	
 	}
@@ -156,6 +162,7 @@ void test() {
 	
 	SYSCALL(VERHOGEN, (int)&testsem, 0, 0);					/* V(testsem)   */
 	if (testsem != 1) { print("error: p1 v(testsem) with no effects\n"); PANIC(); }
+
 	print("p1 v(testsem)\n");
 
 	/* set up states of the other processes */
@@ -338,10 +345,10 @@ void p2() {
 
 	/* initialize all semaphores in the s[] array */
 	for (i = 0; i <= MAXSEM; i++) s[i] = 0;
-
+	
 	/* V, then P, all of the semaphores in the s[] array */
 	for (i = 0; i <= MAXSEM; i++)  {
-		SYSCALL(VERHOGEN, (int)&s[i], 0, 0);			/* V(S[I]) */
+		SYSCALL(VERHOGEN, (int)&s[i], 0, 0);		/* V(S[I]) */
 		SYSCALL(PASSEREN, (int)&s[i], 0, 0);			/* P(S[I]) */
 		if (s[i] != 0) print("error: p2 bad v/p pairs\n");
 	}
@@ -349,17 +356,16 @@ void p2() {
 	print("p2 v/p pairs successfully\n");
 
 	/* test of SYS6 */
-
+	
 	now1 = getTODLO();                  				/* time of day   */
 	cpu_t1 = SYSCALL(GETCPUTIME, 0, 0, 0);			/* CPU time used */
 
 	/* delay for several milliseconds */
-	for (i = 1; i < LOOPNUM; i++)
-		;
+	for (i = 1; i < LOOPNUM; i++);
 
 	cpu_t2 = SYSCALL(GETCPUTIME, 0, 0, 0);			/* CPU time used */
 	now2 = getTODLO();				/* time of day  */
-
+	
 	if (((now2 - now1) >= (cpu_t2 - cpu_t1)) &&
 			((cpu_t2 - cpu_t1) >= MINLOOPTIME)) {
 		print("p2 is OK\n");
@@ -370,7 +376,7 @@ void p2() {
 			print ("error: not enough cpu time went by\n");
 		print("p2 blew it!\n");
 	}
-
+	
 	p1p2synch = 1;				/* p1 will check this */
 
 	SYSCALL(VERHOGEN, (int)&endp2, 0, 0);				/* V(endp2)     */
@@ -556,18 +562,16 @@ void p5() {
 	/* thus, IEP bit is not set for them (see test() for an example of it) */
 
 
-	/* specify trap vectors
+	/* specify trap vectors */
 	SYSCALL(SPECTRAPVEC, SPECPGMT, (int)&pstat_o, (int)&pstat_n);
 
 	SYSCALL(SPECTRAPVEC, SPECTLB, (int)&mstat_o, (int)&mstat_n);
 
 	SYSCALL(SPECTRAPVEC, SPECSYSBP, (int)&sstat_o, (int)&sstat_n);
-*/
 
 	print("p5 - try to cause a pgm trap accessing some non-existent memory\n");
 	/* to cause a pgm trap access some non-existent memory */	
 	*p5MemLocation = *p5MemLocation + 1;		 /* Should cause a program trap */
-
 }
 
 void p5a() {
@@ -610,9 +614,9 @@ void p5b() {
 	print("p5 - try to redefine PGMVECT, this will cause p5 termination\n");
 	/* should cause a termination       */
 	/* since this has already been      */
-	/* done for PROGTRAPs
+	/* done for PROGTRAPs               */
 	SYSCALL(SPECTRAPVEC, 1, (int)&pstat_o, (int)&pstat_n);
-	*/
+
 	/* should have terminated, so should not get to this point */
 	print("error: p5 didn't terminate\n");
 	PANIC();				/* PANIC            */

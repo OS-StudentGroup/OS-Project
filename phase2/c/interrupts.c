@@ -3,7 +3,7 @@
 @note Interrupt Exception Handling.
 */
 
-#include "../e/inclusions.e"
+#include "../e/dependencies.e"
 #include "../../include/types.h"
 
 /* Interrupt Old Area */
@@ -22,24 +22,25 @@ HIDDEN const int DeviceCheckAddress[8] =
 		DEV_CHECK_ADDRESS_7
  };
 
-/* Device Check Lines*/
+/* Device Check Lines */
 HIDDEN const int InterruptLine[8] =
 {
-		IL_IPI,
-		IL_CPUTIMER,
-		IL_TIMER,
-		IL_DISK,
-		IL_TAPE,
-		IL_ETHERNET,
-		IL_PRINTER,
-		IL_TERMINAL
+		DEV_CHECK_LINE_0,
+		DEV_CHECK_LINE_1,	/* Local (CPU) Timer */
+		DEV_CHECK_LINE_2,	/* Interval Timer */
+		DEV_CHECK_LINE_3,	/* Disk  */
+		DEV_CHECK_LINE_4,	/* Tape */
+		DEV_CHECK_LINE_5,	/* Ethernet */
+		DEV_CHECK_LINE_6,	/* Printer */
+		DEV_CHECK_LINE_7	/* Terminal */
 };
 
-/*
-@brief Identify at which device a pending interrupt refers to.
-@param bitmap Bitmap of the pending interrupt.
-@return The device identifier.
-*/
+/**
+ *	getDevice - recognize device with a pending interrupt on the bitmap passed
+ *	@deviceMapAddr: bitmap of pending interrupt for interrupt line
+ *
+ *	returns: the index of the device with a pending interrupt
+ */
 HIDDEN int getDevice(int bitmap)
 {
 	int i;
@@ -48,27 +49,27 @@ HIDDEN int getDevice(int bitmap)
 }
 
 /*
-@brief Performs a V on the given device semaphore.
-@param semaddr Address of the semaphore.
+@brief Performs a V on the given device Semaphores.
+@param semaddr Address of the Semaphores.
 @param status Device status.
 @return Void.
 */
 HIDDEN void verhogenInt(int *semaddr, int status)
 {
 	pcb_t *process;
-	/* tprint(" VeroghenInt "); */
+
 	/* Performs a V on the semaphore */
 	(*semaddr)++;
 
 	/* If there is at least one blocked process */
-	if (!(process = removeBlocked(semaddr)))
+	if ((process = removeBlocked(semaddr)))
 	{
 		/* Add the process into the Ready Queue */
 		insertProcQ(&ReadyQueue, process);
 
 		SoftBlockCount--;
 		process->p_s.a1 = status;
-		/* process->p_isBlocked = FALSE;*/
+		process->p_isBlocked = FALSE;
 	}
 }
 
@@ -91,18 +92,16 @@ HIDDEN void intTimer()
 		if (PseudoClock < 0)
 		{
 			/* Unblock all processes */
-			while (PseudoClock < 0)
+			for (; PseudoClock < 0; PseudoClock++)
 			{
 				/* If there is a blocked process */
 				if ((process = removeBlocked(&PseudoClock)))
 				{
 					/* Add the process into the Ready Queue */
 					insertProcQ(&ReadyQueue, process);
-
 					process->p_isBlocked = FALSE;
 					SoftBlockCount--;
 				}
-				PseudoClock++;
 			}
 		}
 		/* [Case 1.2] There is at most one blocked process */
@@ -117,7 +116,6 @@ HIDDEN void intTimer()
 			{
 				/* Add the process into the Ready Queue */
 				insertProcQ(&ReadyQueue, process);
-
 				process->p_isBlocked = FALSE;
 				SoftBlockCount--;
 
@@ -135,6 +133,7 @@ HIDDEN void intTimer()
 	{
 		/* Add the current process into the Ready Queue */
 		insertProcQ(&ReadyQueue, CurrentProcess);
+		CurrentProcess->p_isBlocked = TRUE;
 		CurrentProcess = NULL;
 		SoftBlockCount++;
 
@@ -154,7 +153,7 @@ HIDDEN void intTimer()
 HIDDEN void devInterrupt(int cause)
 {
 	int *deviceBitmap, deviceNumber;
-	dtpreg_t *status;
+	dtpreg_t *deviceRegister;
 
 	/* Get the starting address of the device bitmap */
 	deviceBitmap = (int *) CDEV_BITMAP_ADDR(cause);
@@ -162,20 +161,20 @@ HIDDEN void devInterrupt(int cause)
 	/* Get the highest priority device affected by a pending interrupt */
 	deviceNumber = getDevice(*deviceBitmap);
 
-	/* Get the device status */
-	status = (dtpreg_t *) DEV_REG_ADDR(cause, deviceNumber);
+	/* Get the device register */
+	deviceRegister = (dtpreg_t *) DEV_REG_ADDR(cause, deviceNumber);
 
 	/* Perform a V on the device semaphore */
 	switch (cause)
 	{
-		case (INT_DISK):	verhogenInt(&Semaphore.disk[deviceNumber], status->status);		break;
-		case (INT_TAPE):	verhogenInt(&Semaphore.tape[deviceNumber], status->status);		break;
-		case (INT_UNUSED):	verhogenInt(&Semaphore.network[deviceNumber], status->status);	break;
-		case (INT_PRINTER):	verhogenInt(&Semaphore.printer[deviceNumber], status->status);	break;
+	case (INT_DISK):	verhogenInt(&Semaphores.disk[deviceNumber], 	deviceRegister->status);	break;
+	case (INT_TAPE):	verhogenInt(&Semaphores.tape[deviceNumber], 	deviceRegister->status);	break;
+	case (INT_UNUSED):	verhogenInt(&Semaphores.network[deviceNumber], 	deviceRegister->status);	break;
+	case (INT_PRINTER):	verhogenInt(&Semaphores.printer[deviceNumber], 	deviceRegister->status);	break;
 	}
 
-	/* Identify the pending interrupt */
-	status->command = DEV_C_ACK;
+	/* Acknowledge the outstanding interrupt */
+	deviceRegister->command = DEV_C_ACK;
 }
 
 /*
@@ -185,8 +184,8 @@ HIDDEN void devInterrupt(int cause)
 HIDDEN void intTerminal()
 {
 	int *deviceBitmap, deviceNumber;
-	termreg_t *status;
-  /*tprint(" IntTerminal ");*/
+	termreg_t *deviceRegister;
+
 	/* Get the starting address of the device bitmap */
 	deviceBitmap = (int *) CDEV_BITMAP_ADDR(INT_TERMINAL);
 
@@ -194,39 +193,37 @@ HIDDEN void intTerminal()
 	deviceNumber = getDevice(*deviceBitmap);
 
 	/* Get the device status */
-	status = (termreg_t *) DEV_REG_ADDR(INT_TERMINAL, deviceNumber);
+	deviceRegister = (termreg_t *) DEV_REG_ADDR(INT_TERMINAL, deviceNumber);
 
 	/* [Case 1] Sending a character */
-	if ((status->recv_status & DEV_TERM_STATUS) == DEV_TRCV_S_CHARRECV)
+	if ((deviceRegister->recv_status & DEV_TERM_STATUS) == DEV_TRCV_S_CHARRECV)
 	{
-    tprint(" recv ");
 		/* Perform a V on the device semaphore */
-		verhogenInt(&Semaphore.terminalR[deviceNumber], status->recv_status);
+		verhogenInt(&Semaphores.terminalR[deviceNumber], deviceRegister->recv_status);
 
 		/* Identify the pending interrupt */
-		status->recv_command = DEV_C_ACK;
+		deviceRegister->recv_command = DEV_C_ACK;
 	}
 	/* [Case 2] Receiving a character */
-	else if ((status->transm_status & DEV_TERM_STATUS) == DEV_TTRS_S_CHARTRSM)
+	else if ((deviceRegister->transm_status & DEV_TERM_STATUS) == DEV_TTRS_S_CHARTRSM)
 	{
-   /* tprint(" send "); */
 		/* Perform a V on the device semaphore */
-		verhogenInt(&Semaphore.terminalT[deviceNumber], status->transm_status);
+		verhogenInt(&Semaphores.terminalT[deviceNumber], deviceRegister->transm_status);
 
 		/* Identify the pending interrupt */
-		status->transm_command = DEV_C_ACK;
+		deviceRegister->transm_command = DEV_C_ACK;
 	}
 }
 
 
 /*
-@brief The function identifies the pending interrupt and performs a V on the related semaphore.
+@brief The function identifies the pending interrupt and performs a V on the related Semaphores.
 @return Void.
 */
 EXTERN void intHandler()
 {
 	int interruptCause;
-	/*tprint(" IntHandler ");*/
+
 	/* If there is a running process */
 	if (CurrentProcess)
 	{
@@ -245,7 +242,7 @@ EXTERN void intHandler()
 	else if (CAUSE_IP_GET(interruptCause, INT_UNUSED))		devInterrupt(INT_UNUSED);	/* Unused */
 	else if (CAUSE_IP_GET(interruptCause, INT_PRINTER))		devInterrupt(INT_PRINTER);	/* Printer */
 	else if (CAUSE_IP_GET(interruptCause, INT_TERMINAL))	intTerminal();				/* Terminal */
-	
+
 	/* Call the scheduler */
 	scheduler();
 }

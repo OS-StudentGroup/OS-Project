@@ -3,7 +3,7 @@
 @note Process scheduler and deadlock detection.
 */
 
-#include "../e/inclusions.e"
+#include "../e/dependencies.e"
 
 /**
 @brief The function updates the CPU time of the running process and re-start the Timer Tick.
@@ -17,15 +17,16 @@ void scheduler()
 	if (CurrentProcess)
 	{
 		/* Set process start time in the CPU */
-		CurrentProcess->p_cpu_time += getTODLO() - ProcessTOD;
-		ProcessTOD = getTODLO();
-		
+		CurrentProcess->p_cpu_time += getTODLO() - ProcessTOD ;
+		ProcessTOD  = getTODLO();
+
 		/* Update elapsed time of the Pseudo-Clock tick */
-		TimerTick += getTODLO() - StartTimerTick;
-		StartTimerTick = getTODLO();
-		
+		TimerTick  += getTODLO() - StartTimerTick   ;
+		StartTimerTick    = getTODLO();
+
 		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
-		setTIMER(MIN((SCHED_TIME_SLICE - CurrentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - TimerTick)));
+		setTIMER(MIN((SCHED_TIME_SLICE - CurrentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - TimerTick )));
+
 		/* Load the processor state in order to start execution */
 		LDST(&(CurrentProcess->p_s));
 	}
@@ -33,16 +34,16 @@ void scheduler()
 	else
 	{
 		/* If Ready Queue is empty */
-		if (emptyProcQ(ReadyQueue))
+		if (emptyProcQ(ReadyQueue ))
 		{
-			/* If there are no more processes then halt the system */
-			if (ProcessCount == 0){tprint("ciao");
-				HALT();}
-			/* Deadlock Detection */
-			if (ProcessCount > 0 && SoftBlockCount == 0)
+			/* [Case 2.1] There are no more processes */
+			if (ProcessCount  == 0)
+				HALT();
+			/* [Case 2.2] Deadlock Detection */
+			if (ProcessCount  > 0 && SoftBlockCount  == 0)
 				PANIC();
-			/* At least one process is blocked */
-			if (ProcessCount > 0 && SoftBlockCount > 0)
+			/* [Case 2.3] At least one process is blocked */
+			if (ProcessCount  > 0 && SoftBlockCount > 0)
 			{
 				/* Enable interrupts */
 				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
@@ -52,21 +53,21 @@ void scheduler()
 			}
 			PANIC(); /* Anomaly */
 		}
-		
+
 		/* Otherwise extract first ready process */
-		if (!(CurrentProcess = removeProcQ(&ReadyQueue)))
+		if (!(CurrentProcess = removeProcQ(&ReadyQueue )))
 			PANIC(); /* Anomaly */
-		
+
 		/* Compute elapsed time from the Pseudo-Clock tick */
-		TimerTick += getTODLO() - StartTimerTick;
-		StartTimerTick = getTODLO();
-		
+		TimerTick  += getTODLO() - StartTimerTick   ;
+		StartTimerTick    = getTODLO();
+
 		/* Initialize CPU time */
 		CurrentProcess->p_cpu_time = 0;
-		ProcessTOD = getTODLO();
-	
+		ProcessTOD  = getTODLO();
+
 		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
-		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - TimerTick)));
+		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - TimerTick )));
 
 		/* Load the processor state in order to start execution */
 		LDST(&(CurrentProcess->p_s));
