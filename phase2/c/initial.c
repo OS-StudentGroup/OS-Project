@@ -66,7 +66,7 @@ int main()
 	/* Initialize global variables */
 	ReadyQueue = mkEmptyProcQ();
 	CurrentProcess = NULL;
-	ProcessCount = SoftBlockCount = TimerTick = PseudoClock = 0;
+	SoftBlockCount = TimerTick = PseudoClock = 0;
 
 	/* Initialize device semaphores */
 	for (i = 0; i < DEV_PER_INT; i++)
@@ -96,7 +96,7 @@ int main()
 	insertProcQ(&ReadyQueue, init);
 
 	/* Initialize Process Id */
-	ProcessCount++;
+	ProcessCount = 1;
 
 	/* Start the timer tick */
 	StartTimerTick = getTODLO();

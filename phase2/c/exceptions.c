@@ -60,7 +60,7 @@ HIDDEN void checkSYS5(int exceptionType, state_t *exceptionOldArea)
 		/* Anomaly */
 		if (CurrentProcess)
 			CurrentProcess->p_s.a1 = -1;
-
+		if (!CurrentProcess && emptyProcQ(ReadyQueue) && ProcessCount > 0 && SoftBlockCount == 0) tprint("CAZZOe9");
 		/* Call the scheduler */
 		scheduler();
 	}
@@ -126,8 +126,8 @@ HIDDEN void systemCallKernelMode()
 		/* [Case 3] Perform a V operation on a semaphore */
 		case VERHOGEN:
 			verhogen((int *) a2);
-
 			break;
+
 		/* [Case 4] Perform a P operation on a semaphore */
 		case PASSEREN:
 			passeren((int *) a2);
@@ -172,10 +172,7 @@ EXTERN void sysBpHandler()
 		/* [Case 1] The exception is a system call */
 		case EXC_SYSCALL:
 			/* Distinguish between User Mode and Kernel Mode */
-			if ((SYSBP_Old->cpsr & STATUS_SYS_MODE) == STATUS_USER_MODE)
-				systemCallUserMode();
-			else
-				systemCallKernelMode();
+			((SYSBP_Old->cpsr & STATUS_SYS_MODE) == STATUS_USER_MODE)? systemCallUserMode() : systemCallKernelMode();
 			break;
 
 		/* [Case 2] The exception is a breakpoint */
@@ -187,7 +184,7 @@ EXTERN void sysBpHandler()
 		default:
 			PANIC(); /* Anomaly */
 	}
-
+	/*if (!CurrentProcess && emptyProcQ(ReadyQueue) && ProcessCount > 0 && SoftBlockCount == 0) tprint("CAZZO sysBpHandler/n");*/
 	/* Call the scheduler */
 	scheduler();
 }
@@ -198,9 +195,8 @@ EXTERN void sysBpHandler()
 */
 EXTERN void pgmTrapHandler()
 {
-	/* If a process is running, load Program Trap Old Area into the current process state */
-	if (CurrentProcess)
-		saveCurrentState(PGMTRAP_Old, &(CurrentProcess->p_s));
+	/* If a process is running, load Program Trap Old Area into the current process state, otherwise call the scheduler */
+	(CurrentProcess)? saveCurrentState(PGMTRAP_Old, &(CurrentProcess->p_s)) : scheduler();
 
 	/* Distinguish whether SYS5 has been invoked before or not */
 	checkSYS5(PGMTRAP_EXCEPTION, PGMTRAP_Old);
@@ -212,9 +208,8 @@ EXTERN void pgmTrapHandler()
 */
 EXTERN void tlbHandler()
 {
-	/* If a process is running, load TLB Old Area into the current process state */
-	if (CurrentProcess)
-		saveCurrentState(TLB_Old, &(CurrentProcess->p_s));
+	/* If a process is running, load Program Trap Old Area into the current process state, otherwise call the scheduler */
+	(CurrentProcess)? saveCurrentState(TLB_Old, &(CurrentProcess->p_s)) : scheduler();
 
 	/* Distinguish whether SYS5 has been invoked before or not */
 	checkSYS5(TLB_EXCEPTION, TLB_Old);
@@ -236,10 +231,8 @@ EXTERN int createProcess(state_t *state)
 	/* Load processor state into process state */
 	saveCurrentState(state, &(process->p_s));
 
-	/* Update process counter */
-	++ProcessCount;
-
-	/* Update process tree and process queue */
+	/* Update process counter, process tree and process queue */
+	ProcessCount++;
 	insertChild(CurrentProcess, process);
 	insertProcQ(&ReadyQueue, process);
 
@@ -270,7 +263,7 @@ HIDDEN void _terminateProcess(pcb_t *process)
 
 			/* Extract the process from the semaphore */
 			outBlocked(process);
-			/*SoftBlockCount--;*/
+			SoftBlockCount--;
 		}
 		/* [Case 2] Process blocked on the Pseudo-Clock semaphore */
 		if (process->p_semAdd == &PseudoClock)
@@ -363,7 +356,7 @@ EXTERN void passerenIO(int *semaddr)
 		CurrentProcess->p_isBlocked = TRUE;
 		CurrentProcess = NULL;
 		SoftBlockCount++;
-
+		/*if(SoftBlockCount == 0)tprint("CAZZO999");*/
 		/* Call the scheduler */
 		scheduler();
 	}
@@ -397,7 +390,8 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 		CurrentProcess->p_stateOldArea[type] = stateOld;
 		CurrentProcess->p_stateNewArea[type] = stateNew;
 	}
-
+	if (!CurrentProcess && emptyProcQ(ReadyQueue) && ProcessCount > 0 && SoftBlockCount == 0)
+		SoftBlockCount++;
 	/* Call the scheduler */
 	scheduler();
 }
@@ -434,42 +428,30 @@ EXTERN void waitClock()
 */
 EXTERN unsigned int waitIO(int interruptLine, int deviceNumber, int reading)
 {
-	termreg_t *terminal;
-	dtpreg_t *device;
-
 	switch (interruptLine)
 	{
-		case INT_DISK:
-			passerenIO(&Semaphores.disk[deviceNumber]);
-			break;
-		case INT_TAPE:
-			passerenIO(&Semaphores.tape[deviceNumber]);
-			break;
-		case INT_UNUSED:
-			passerenIO(&Semaphores.network[deviceNumber]);
-			break;
-		case INT_PRINTER:
-			passerenIO(&Semaphores.printer[deviceNumber]);
-			break;
-		case INT_TERMINAL:
-			passerenIO((reading)? &Semaphores.terminalR[deviceNumber] : &Semaphores.terminalT[deviceNumber]);
-			break;
-		default:
-			PANIC(); /* Anomaly */
+		case INT_DISK:		passerenIO(&Semaphores.disk[deviceNumber]);		break;
+		case INT_TAPE:		passerenIO(&Semaphores.tape[deviceNumber]);		break;
+		case INT_UNUSED:	passerenIO(&Semaphores.network[deviceNumber]);	break;
+		case INT_PRINTER:	passerenIO(&Semaphores.printer[deviceNumber]);	break;
+		case INT_TERMINAL:	passerenIO((reading)?
+								&Semaphores.terminalR[deviceNumber] :
+								&Semaphores.terminalT[deviceNumber]);		break;
+		default: PANIC(); /* Anomaly */
 	}
 
 	/* [Case 1] The device is not the terminal */
 	if (interruptLine != INT_TERMINAL)
 	{
-		device = (dtpreg_t *) DEV_REG_ADDR(interruptLine, deviceNumber);
+		dtpreg_t *device = (dtpreg_t *) DEV_REG_ADDR(interruptLine, deviceNumber);
 		return device->status;
 	}
 	/* [Case 2] The device is the terminal */
 	else
 	{
-		terminal = (termreg_t *) DEV_REG_ADDR(interruptLine, deviceNumber);
+		termreg_t *terminal = (termreg_t *) DEV_REG_ADDR(interruptLine, deviceNumber);
 
-		/* Distinguish between receiving and transmitting status */
+		/* Distinguish between receiving and transmitting */
 		return (reading)? terminal->recv_status : terminal->transm_status;
 	}
 

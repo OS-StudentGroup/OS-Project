@@ -64,4 +64,4 @@ asl.o: $(ASL)
 
 # [3] CLEANING
 clean:
-	rm -rf *o all
+	rm -f *.o *.uarm

@@ -34,23 +34,23 @@ void scheduler()
 	else
 	{
 		/* If Ready Queue is empty */
-		if (emptyProcQ(ReadyQueue ))
+		if (emptyProcQ(ReadyQueue))
 		{
 			/* [Case 2.1] There are no more processes */
-			if (ProcessCount  == 0)
+			if (ProcessCount == 0)
 				HALT();
 			/* [Case 2.2] Deadlock Detection */
-			if (ProcessCount  > 0 && SoftBlockCount  == 0)
-				PANIC();
+			if (ProcessCount > 0 && SoftBlockCount == 0){tprint("CAZZO4");
+				PANIC();}
 			/* [Case 2.3] At least one process is blocked */
-			if (ProcessCount  > 0 && SoftBlockCount > 0)
+			if (ProcessCount > 0 && SoftBlockCount > 0)
 			{
 				/* Enable interrupts */
 				setSTATUS(STATUS_ALL_INT_ENABLE(getSTATUS()));
 
 				/* Set the machine in idle state waiting for interrupts */
 				WAIT();
-			}
+			}tprint("CAZZO3");
 			PANIC(); /* Anomaly */
 		}
 

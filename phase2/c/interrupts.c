@@ -109,8 +109,10 @@ HIDDEN void intTimer()
 		{
 			/* [Case 1.2.1] 0 blocked processes */
 			if (!(process = removeBlocked(&PseudoClock)))
+			{
 				/* Perform a P on the Pseudo-Clock */
 				PseudoClock--;
+			}
 			/* [Case 1.2.2] 1 blocked process */
 			else
 			{
@@ -230,6 +232,9 @@ EXTERN void intHandler()
 		/* Save current processor state */
 		saveCurrentState(InterruptOldArea , &(CurrentProcess->p_s));
 
+		/* Re-enable interrupts */
+		/*CurrentProcess->p_s.cpsr = STATUS_ALL_INT_ENABLE(CurrentProcess->p_s.cpsr);*/
+		/*SoftBlockCount++;*/
 		/* Decrease Program Counter */
 		CurrentProcess->p_s.pc -= 2 * WORD_SIZE;
 	}
@@ -242,7 +247,8 @@ EXTERN void intHandler()
 	else if (CAUSE_IP_GET(interruptCause, INT_UNUSED))		devInterrupt(INT_UNUSED);	/* Unused */
 	else if (CAUSE_IP_GET(interruptCause, INT_PRINTER))		devInterrupt(INT_PRINTER);	/* Printer */
 	else if (CAUSE_IP_GET(interruptCause, INT_TERMINAL))	intTerminal();				/* Terminal */
-
+	if (!CurrentProcess && emptyProcQ(ReadyQueue) && ProcessCount > 0 && SoftBlockCount == 0)
+		SoftBlockCount++;
 	/* Call the scheduler */
 	scheduler();
 }
