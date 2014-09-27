@@ -21,8 +21,8 @@ void scheduler()
 		ProcessTOD  = getTODLO();
 
 		/* Update elapsed time of the Pseudo-Clock tick */
-		TimerTick  += getTODLO() - StartTimerTick   ;
-		StartTimerTick    = getTODLO();
+		TimerTick  += getTODLO() - StartTimerTick;
+		StartTimerTick = getTODLO();
 
 		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
 		setTIMER(MIN((SCHED_TIME_SLICE - CurrentProcess->p_cpu_time), (SCHED_PSEUDO_CLOCK - TimerTick )));
@@ -37,11 +37,9 @@ void scheduler()
 		if (emptyProcQ(ReadyQueue))
 		{
 			/* [Case 2.1] There are no more processes */
-			if (ProcessCount == 0)
-				HALT();
+			if (ProcessCount == 0) HALT();
 			/* [Case 2.2] Deadlock Detection */
-			if (ProcessCount > 0 && SoftBlockCount == 0){tprint("CAZZO4");
-				PANIC();}
+			if (ProcessCount > 0 && SoftBlockCount == 0) PANIC();
 			/* [Case 2.3] At least one process is blocked */
 			if (ProcessCount > 0 && SoftBlockCount > 0)
 			{
@@ -50,21 +48,20 @@ void scheduler()
 
 				/* Set the machine in idle state waiting for interrupts */
 				WAIT();
-			}tprint("CAZZO3");
+			}
 			PANIC(); /* Anomaly */
 		}
 
 		/* Otherwise extract first ready process */
-		if (!(CurrentProcess = removeProcQ(&ReadyQueue )))
-			PANIC(); /* Anomaly */
+		if (!(CurrentProcess = removeProcQ(&ReadyQueue))) PANIC(); /* Anomaly */
 
 		/* Compute elapsed time from the Pseudo-Clock tick */
-		TimerTick  += getTODLO() - StartTimerTick   ;
-		StartTimerTick    = getTODLO();
+		TimerTick  += getTODLO() - StartTimerTick;
+		StartTimerTick = getTODLO();
 
 		/* Initialize CPU time */
 		CurrentProcess->p_cpu_time = 0;
-		ProcessTOD  = getTODLO();
+		ProcessTOD = getTODLO();
 
 		/* Set Interval Timer as the smallest between Time Slice and Pseudo-Clock tick */
 		setTIMER(MIN(SCHED_TIME_SLICE, (SCHED_PSEUDO_CLOCK - TimerTick )));

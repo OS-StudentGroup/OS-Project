@@ -66,7 +66,7 @@ int main()
 	/* Initialize global variables */
 	ReadyQueue = mkEmptyProcQ();
 	CurrentProcess = NULL;
-	SoftBlockCount = TimerTick = PseudoClock = 0;
+	ProcessCount = SoftBlockCount = TimerTick = PseudoClock = 0;
 
 	/* Initialize device semaphores */
 	for (i = 0; i < DEV_PER_INT; i++)
@@ -74,8 +74,7 @@ int main()
 		Semaphores.printer[i] = Semaphores.terminalR[i] = Semaphores.terminalT[i] = 0;
 
 	/* Initialize init method */
-	if (!(init = allocPcb()))
-		PANIC(); /* Anomaly */
+	if (!(init = allocPcb())) PANIC(); /* Anomaly */
 
 	/* Disable Virtual Memory */
 	init->p_s.CP15_Control &= ~(0x1);
@@ -95,8 +94,8 @@ int main()
 	/* Insert init in ProcQ */
 	insertProcQ(&ReadyQueue, init);
 
-	/* Initialize Process Id */
-	ProcessCount = 1;
+	/* Increment Process Count */
+	ProcessCount++;
 
 	/* Start the timer tick */
 	StartTimerTick = getTODLO();

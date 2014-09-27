@@ -4,57 +4,34 @@
 */
 
 #include "../e/dependencies.e"
-#include "../../include/types.h"
 
 /* Interrupt Old Area */
 HIDDEN state_t *InterruptOldArea = (state_t *) INT_OLDAREA;
 
-/* Device Check Addresses */
-HIDDEN const int DeviceCheckAddress[8] =
-{
-		DEV_CHECK_ADDRESS_0,
-		DEV_CHECK_ADDRESS_1,
-		DEV_CHECK_ADDRESS_2,
-		DEV_CHECK_ADDRESS_3,
-		DEV_CHECK_ADDRESS_4,
-		DEV_CHECK_ADDRESS_5,
-		DEV_CHECK_ADDRESS_6,
-		DEV_CHECK_ADDRESS_7
- };
-
-/* Device Check Lines */
-HIDDEN const int InterruptLine[8] =
-{
-		DEV_CHECK_LINE_0,
-		DEV_CHECK_LINE_1,	/* Local (CPU) Timer */
-		DEV_CHECK_LINE_2,	/* Interval Timer */
-		DEV_CHECK_LINE_3,	/* Disk  */
-		DEV_CHECK_LINE_4,	/* Tape */
-		DEV_CHECK_LINE_5,	/* Ethernet */
-		DEV_CHECK_LINE_6,	/* Printer */
-		DEV_CHECK_LINE_7	/* Terminal */
-};
-
 /**
- *	getDevice - recognize device with a pending interrupt on the bitmap passed
- *	@deviceMapAddr: bitmap of pending interrupt for interrupt line
- *
- *	returns: the index of the device with a pending interrupt
- */
+@brief Get the highest priority device affected by a pending interrupt.
+@param bitmap The device bitmap.
+@return Index of the device.
+*/
 HIDDEN int getDevice(int bitmap)
 {
-	int i;
-	for (i = 0; bitmap != (bitmap | DeviceCheckAddress[i]) && i < 7; i++);
-	return InterruptLine[i];
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_0)) return DEV_CHECK_LINE_0;
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_1)) return DEV_CHECK_LINE_1;
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_2)) return DEV_CHECK_LINE_2;
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_3)) return DEV_CHECK_LINE_3;
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_4)) return DEV_CHECK_LINE_4;
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_5)) return DEV_CHECK_LINE_5;
+	if (bitmap == (bitmap | DEV_CHECK_ADDRESS_6)) return DEV_CHECK_LINE_6;
+	return DEV_CHECK_LINE_7;
 }
 
 /*
-@brief Performs a V on the given device Semaphores.
-@param semaddr Address of the Semaphores.
+@brief Performs a V on the given device semaphore.
+@param semaddr Address of the semaphore.
 @param status Device status.
 @return Void.
 */
-HIDDEN void verhogenInt(int *semaddr, int status)
+HIDDEN void intVerhogen(int *semaddr, int status)
 {
 	pcb_t *process;
 
@@ -69,7 +46,6 @@ HIDDEN void verhogenInt(int *semaddr, int status)
 
 		SoftBlockCount--;
 		process->p_s.a1 = status;
-		process->p_isBlocked = FALSE;
 	}
 }
 
@@ -91,7 +67,7 @@ HIDDEN void intTimer()
 		/* [Case 1.1] There is at least one blocked process */
 		if (PseudoClock < 0)
 		{
-			/* Unblock all processes */
+			/* Unleash all of them */
 			for (; PseudoClock < 0; PseudoClock++)
 			{
 				/* If there is a blocked process */
@@ -99,7 +75,7 @@ HIDDEN void intTimer()
 				{
 					/* Add the process into the Ready Queue */
 					insertProcQ(&ReadyQueue, process);
-					process->p_isBlocked = FALSE;
+
 					SoftBlockCount--;
 				}
 			}
@@ -108,20 +84,14 @@ HIDDEN void intTimer()
 		else
 		{
 			/* [Case 1.2.1] 0 blocked processes */
-			if (!(process = removeBlocked(&PseudoClock)))
-			{
-				/* Perform a P on the Pseudo-Clock */
-				PseudoClock--;
-			}
+			if (!(process = removeBlocked(&PseudoClock))) PseudoClock--;
 			/* [Case 1.2.2] 1 blocked process */
 			else
 			{
 				/* Add the process into the Ready Queue */
 				insertProcQ(&ReadyQueue, process);
-				process->p_isBlocked = FALSE;
-				SoftBlockCount--;
 
-				/* Perform a V on the Pseudo-Clock */
+				SoftBlockCount--;
 				PseudoClock++;
 			}
 		}
@@ -144,15 +114,14 @@ HIDDEN void intTimer()
 		StartTimerTick = getTODLO();
 	}
 	/* [Case 3] There is not a running process */
-	else
-		setTIMER(SCHED_PSEUDO_CLOCK - TimerTick);
+	else setTIMER(SCHED_PSEUDO_CLOCK - TimerTick);
 }
 
 /*
 @brief Acknowledge a pending interrupt through setting the command code in the device register.
 @return Void.
 */
-HIDDEN void devInterrupt(int cause)
+HIDDEN void intDevice(int cause)
 {
 	int *deviceBitmap, deviceNumber;
 	dtpreg_t *deviceRegister;
@@ -169,10 +138,10 @@ HIDDEN void devInterrupt(int cause)
 	/* Perform a V on the device semaphore */
 	switch (cause)
 	{
-	case (INT_DISK):	verhogenInt(&Semaphores.disk[deviceNumber], 	deviceRegister->status);	break;
-	case (INT_TAPE):	verhogenInt(&Semaphores.tape[deviceNumber], 	deviceRegister->status);	break;
-	case (INT_UNUSED):	verhogenInt(&Semaphores.network[deviceNumber], 	deviceRegister->status);	break;
-	case (INT_PRINTER):	verhogenInt(&Semaphores.printer[deviceNumber], 	deviceRegister->status);	break;
+		case (INT_DISK):	intVerhogen(&Semaphores.disk[deviceNumber], 	deviceRegister->status);	break;
+		case (INT_TAPE):	intVerhogen(&Semaphores.tape[deviceNumber], 	deviceRegister->status);	break;
+		case (INT_UNUSED):	intVerhogen(&Semaphores.network[deviceNumber], 	deviceRegister->status);	break;
+		case (INT_PRINTER):	intVerhogen(&Semaphores.printer[deviceNumber], 	deviceRegister->status);	break;
 	}
 
 	/* Acknowledge the outstanding interrupt */
@@ -201,7 +170,7 @@ HIDDEN void intTerminal()
 	if ((deviceRegister->recv_status & DEV_TERM_STATUS) == DEV_TRCV_S_CHARRECV)
 	{
 		/* Perform a V on the device semaphore */
-		verhogenInt(&Semaphores.terminalR[deviceNumber], deviceRegister->recv_status);
+		intVerhogen(&Semaphores.terminalR[deviceNumber], deviceRegister->recv_status);
 
 		/* Identify the pending interrupt */
 		deviceRegister->recv_command = DEV_C_ACK;
@@ -210,7 +179,7 @@ HIDDEN void intTerminal()
 	else if ((deviceRegister->transm_status & DEV_TERM_STATUS) == DEV_TTRS_S_CHARTRSM)
 	{
 		/* Perform a V on the device semaphore */
-		verhogenInt(&Semaphores.terminalT[deviceNumber], deviceRegister->transm_status);
+		intVerhogen(&Semaphores.terminalT[deviceNumber], deviceRegister->transm_status);
 
 		/* Identify the pending interrupt */
 		deviceRegister->transm_command = DEV_C_ACK;
@@ -230,25 +199,21 @@ EXTERN void intHandler()
 	if (CurrentProcess)
 	{
 		/* Save current processor state */
-		saveCurrentState(InterruptOldArea , &(CurrentProcess->p_s));
+		saveCurrentState(InterruptOldArea, &(CurrentProcess->p_s));
 
-		/* Re-enable interrupts */
-		/*CurrentProcess->p_s.cpsr = STATUS_ALL_INT_ENABLE(CurrentProcess->p_s.cpsr);*/
-		/*SoftBlockCount++;*/
 		/* Decrease Program Counter */
-		CurrentProcess->p_s.pc -= 2 * WORD_SIZE;
+		CurrentProcess->p_s.pc -= WORD_SIZE;
 	}
 
 	/* Get the interrupt cause and call the handler accordingly */
 	interruptCause = InterruptOldArea->CP15_Cause;
-	if 		(CAUSE_IP_GET(interruptCause, INT_TIMER))		intTimer();					/* Timer */
-	else if (CAUSE_IP_GET(interruptCause, INT_DISK))		devInterrupt(INT_DISK);		/* Disk */
-	else if (CAUSE_IP_GET(interruptCause, INT_TAPE))		devInterrupt(INT_TAPE);		/* Tape */
-	else if (CAUSE_IP_GET(interruptCause, INT_UNUSED))		devInterrupt(INT_UNUSED);	/* Unused */
-	else if (CAUSE_IP_GET(interruptCause, INT_PRINTER))		devInterrupt(INT_PRINTER);	/* Printer */
-	else if (CAUSE_IP_GET(interruptCause, INT_TERMINAL))	intTerminal();				/* Terminal */
-	if (!CurrentProcess && emptyProcQ(ReadyQueue) && ProcessCount > 0 && SoftBlockCount == 0)
-		SoftBlockCount++;
+	if 		(CAUSE_IP_GET(interruptCause, INT_TIMER))		intTimer();				/* Timer */
+	else if (CAUSE_IP_GET(interruptCause, INT_DISK))		intDevice(INT_DISK);	/* Disk */
+	else if (CAUSE_IP_GET(interruptCause, INT_TAPE))		intDevice(INT_TAPE);	/* Tape */
+	else if (CAUSE_IP_GET(interruptCause, INT_UNUSED))		intDevice(INT_UNUSED);	/* Unused */
+	else if (CAUSE_IP_GET(interruptCause, INT_PRINTER))		intDevice(INT_PRINTER);	/* Printer */
+	else if (CAUSE_IP_GET(interruptCause, INT_TERMINAL))	intTerminal();			/* Terminal */
+
 	/* Call the scheduler */
 	scheduler();
 }

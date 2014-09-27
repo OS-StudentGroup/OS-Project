@@ -11,26 +11,25 @@ HIDDEN semd_t *findSemaphore(int *semAdd);
 HIDDEN void freeSemaphore(semd_t *sem);
 
 /* Pointer to the head of the Active Semaphore List (ASL) */
-HIDDEN semd_t *semd_h;
+HIDDEN semd_t *semd_h = NULL;
 
 /* Pointer to the head of the unused semaphore descriptors list */
-HIDDEN semd_t *semdFree_h;
+HIDDEN semd_t *semdFree_h = NULL;
 
-/*
- * Check if a list is empty
- * Input:   dummy header of a list
- * Output:  TRUE, if the list is empty
- *          FALSE, else
+/**
+@brief Check if a list is empty.
+@param Dummy header of a list.
+@return  TRUE, if the list is empty, otherwise FALSE.
 */
 HIDDEN int isEmpty(semd_t *header)
 {
 	return !header->s_next;
 }
 
-/*
- * Add a semaphore to ASL
- * Input:   semd_t *sem, pointer to the semaphore
- * Output:  void
+/**
+@brief Add a semaphore to ASL.
+@param sem Pointer to the semaphore.
+@return Void.
 */
 HIDDEN void addToASL(semd_t *sem)
 {
@@ -47,11 +46,10 @@ HIDDEN void addToASL(semd_t *sem)
 	it->s_next = sem;
 }
 
-/*
- * Remove a semaphore from the top of semdFree
- * Input:   void
- * Output:  semd_t *,   pointer to a free semaphore, if semdFree is not empty
- *                      NULL, else
+/**
+@brief Remove a semaphore from the top of semdFree.
+@param sem Pointer to the semaphore.
+@return The pointer to a free semaphore, if semdFree is not empty, otherwise NULL.
 */
 HIDDEN semd_t *removeFromSemdFree(void)
 {
@@ -64,14 +62,15 @@ HIDDEN semd_t *removeFromSemdFree(void)
 	semdFree_h->s_next = semdFree_h->s_next->s_next;
 	output->s_next = NULL;
 	output->s_procQ = mkEmptyProcQ();
+	output->s_semdAdd = NULL;
 
 	return output;
 }
 
-/*
- * Search a semaphore in ASL
- * Input:	int *semAdd, 	physical address of the semaphore
- * Output:	semd_t *,		pointer to the previous element
+/**
+@brief Search for a semaphore in ASL.
+@param semAdd Address of the semaphore.
+@return The pointer to the previous element, otherwise NULL.
 */
 HIDDEN semd_t *findSemaphore(int *semAdd)
 {
@@ -87,9 +86,10 @@ HIDDEN semd_t *findSemaphore(int *semAdd)
 	return (it->s_next && it->s_next->s_semdAdd == semAdd)? it : NULL;
 }
 
-/*
- * Remove a semaphore from ASL. Add it to semdFree list.
- * Input: semd_t *sem, pointer to the previous semaphore (or dummy node)
+/**
+@brief Remove a semaphore from ASL. Add it to semdFree list.
+@param sem Pointer to the previous semaphore (or dummy node).
+@return Void.
 */
 HIDDEN void freeSemaphore(semd_t *sem)
 {
@@ -105,15 +105,13 @@ HIDDEN void freeSemaphore(semd_t *sem)
 	sem->s_next = tmp;
 }
 
-/*
- * Initialize the semdFree list to contain all the elements of the
- * array static semd_t semdTable[MAXPROC + 2].
- * The size is increased by 2 because of 2 dummy headers (one for
- * semdFree and one for ASL).
- * This method will be only called once during data structure
- * initialization.
- *
- * Computational Cost := O(n) : n = "max number of semaphors"
+/**
+@brief Initialize the semdFree list to contain all the elements of the
+array static semd_t semdTable[MAXPROC + 2].
+The size is increased by 2 because of 2 dummy headers (one for
+semdFree and one for ASL).
+This method will be only called once during data structure initialization.
+@return Void.
 */
 EXTERN void initASL(void)
 {
@@ -136,20 +134,19 @@ EXTERN void initASL(void)
 	semd_h->s_procQ = mkEmptyProcQ();
 }
 
-/*
- * Insert the ProcBlk pointed to by p at the tail of the process queue
- * associated with the semaphore whose physical address is semAdd
- * and set the semaphore address of p to semAdd.
- * If the semaphore is currently not active (i.e. there is no descriptor
- * for it in the ASL), allocate a new descriptor from the semdFree list,
- * insert it in the ASL (at the appropriate position), initialize all of
- * the fields (i.e. set s_semdAdd to semAdd, and s_procq to mkEmptyProcQ()),
- * and proceed as above.
- * If a new semaphore descriptor needs to be allocated and the semdFree
- * list is empty, return TRUE.
- * In all other cases return FALSE.
- *
- * Computational Cost := O(n) : n = "max number of semaphors"
+/**
+@brief Insert the ProcBlk pointed to by p at the tail of the process queue
+associated with the semaphore whose physical address is semAdd and set the
+semaphore address of p to semAdd.
+If the semaphore is currently not active (i.e. there is no descriptor
+for it in the ASL), allocate a new descriptor from the semdFree list,
+insert it in the ASL (at the appropriate position), initialize all of
+the fields (i.e. set s_semdAdd to semAdd, and s_procq to mkEmptyProcQ()),
+and proceed as above.
+@param semAdd Pointer to the semaphore.
+@param p Pointer to the ProcBlk.
+@return If a new semaphore descriptor needs to be allocated and the semdFree
+list is empty, return TRUE. In all other cases return FALSE.
 */
 EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 {
@@ -159,11 +156,11 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	/* Pre-conditions: semAdd, p are not NULL */
 	if (!semAdd || !p) return FALSE;
 
-	sem = findSemaphore(semAdd);
 	/* [Case 1] semAdd is in ASL */
-	if (sem)
+	if ((sem = findSemaphore(semAdd)))
 	{
 		p->p_semAdd = semAdd;
+		p->p_isBlocked = TRUE;
 	 	insertProcQ(&sem->s_next->s_procQ, p);
 
 	 	output = FALSE;
@@ -171,19 +168,18 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	/* [Case 2] semAdd is not in ASL */
 	else
 	{
-		sem = removeFromSemdFree();
 		/* [Case 2.1] semdFree is not empty */
-		if (sem)
+		if ((sem = removeFromSemdFree()))
 		{
 			sem->s_semdAdd = p->p_semAdd = semAdd;
+			p->p_isBlocked = TRUE;
 			insertProcQ(&sem->s_procQ, p);
 			addToASL(sem);
 
 			output = FALSE;
 		}
 		/* [Case 2.2] semdFree is empty */
-		else
-			output = TRUE;
+		else output = TRUE;
 	}
 
 	return output;
@@ -208,20 +204,18 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 	/* Pre-conditions: semAdd is not NULL */
 	if (!semAdd) return NULL;
 
-	sem = findSemaphore(semAdd);
 	/* [Case 1] semAdd is in ASL */
-	if (sem)
+	if ((sem = findSemaphore(semAdd)))
 	{
 		output = removeProcQ(&sem->s_next->s_procQ);
+		output->p_semAdd = NULL;
+		output->p_isBlocked = FALSE;
 
-		/* [SubCase] ProcQ is now empty */
-		if (emptyProcQ(sem->s_next->s_procQ))
-			/* Deallocate the semaphore */
-			freeSemaphore(sem);
+		/* If ProcQ is now empty, deallocate the semaphore */
+		if (emptyProcQ(sem->s_next->s_procQ)) freeSemaphore(sem);
 	}
 	/* [Case 2] semAdd is not in ASL */
-	else
-		output = NULL;
+	else output = NULL;
 
 	return output;
 }
@@ -232,9 +226,6 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
  * If ProcBlk pointed to by p does not appear in the process
  * queue associated with p’s semaphore, which is an error
  * condition, return NULL; otherwise, return p.
- *
- * Computational Cost := O(max{n, m}) : n = "max number of semaphors",
- *                                      m = "max number of concurrent processes"
 */
 EXTERN pcb_t *outBlocked(pcb_t *p)
 {
@@ -244,20 +235,18 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	/* Pre-conditions: p is not NULL */
 	if (!p || !p->p_semAdd) return NULL;
 
-	sem = findSemaphore(p->p_semAdd);
-
 	/* [Case 1] semAdd is in ASL */
-	if (sem)
+	if ((sem = findSemaphore(p->p_semAdd)))
 	{
 		output = outProcQ(&sem->s_next->s_procQ, p);
+		output->p_semAdd = NULL;
+		output->p_isBlocked = FALSE;
 
-		/* [SubCase] ProcQ is now empty, deallocate the semaphore */
-		if (emptyProcQ(sem->s_next->s_procQ))
-			freeSemaphore(sem);
+		/* If ProcQ is now empty, deallocate the semaphore */
+		if (emptyProcQ(sem->s_next->s_procQ)) freeSemaphore(sem);
 	}
 	/* [Case 2] semAdd is not in ASL */
-	else
-		output = NULL;
+	else output = NULL;
 
 	return output;
 }
@@ -282,8 +271,6 @@ EXTERN pcb_t *headBlocked(int *semAdd)
 	if ((sem = findSemaphore(semAdd)))
 		output = headProcQ(sem->s_next->s_procQ);
 	/* [Case 2] semAdd is not in ASL */
-	else
-		output = NULL;
-
+	else output = NULL;
 	return output;
 }
