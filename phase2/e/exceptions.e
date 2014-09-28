@@ -11,7 +11,6 @@ EXTERN int createProcess(state_t *statep);
 EXTERN void terminateProcess();
 EXTERN void verhogen(int *semaddr);
 EXTERN void passeren(int *semaddr);
-EXTERN void passerenIO(int *semaddr);
 EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew);
 EXTERN U32 getCPUTime();
 EXTERN void waitClock();

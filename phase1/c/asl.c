@@ -35,12 +35,8 @@ HIDDEN void addToASL(semd_t *sem)
 {
 	semd_t *it;
 
-	/* Iterate ASL until:
-	  	the end of ASL is reached OR
-	  	a semaphore with larger semAdd is found */
-	for (it = semd_h;
-		 it->s_next && it->s_next->s_semdAdd < sem->s_semdAdd;
-		 it = it->s_next);
+	/* Iterate ASL until: the end of ASL is reached OR a semaphore with larger semAdd is found */
+	for (it = semd_h; it->s_next && it->s_next->s_semdAdd < sem->s_semdAdd; it = it->s_next);
 
 	sem->s_next = it->s_next;
 	it->s_next = sem;
@@ -76,12 +72,8 @@ HIDDEN semd_t *findSemaphore(int *semAdd)
 {
 	semd_t *it;
 
-	/* Iterate ASL until:
-	  	the end of ASL is reached OR
-	  	a semaphore with >= semAdd is found */
-	for (it = semd_h;
-		 it->s_next && it->s_next->s_semdAdd < semAdd;
-		 it = it->s_next);
+	/* Iterate ASL until: the end of ASL is reached OR a semaphore with >= semAdd is found */
+	for (it = semd_h; it->s_next && it->s_next->s_semdAdd < semAdd; it = it->s_next);
 
 	return (it->s_next && it->s_next->s_semdAdd == semAdd)? it : NULL;
 }
@@ -118,8 +110,7 @@ EXTERN void initASL(void)
 	static semd_t semdTable[MAXPROC + 2];
 	int i;
 
-	for (i = 0; i < MAXPROC; i++)
-		semdTable[i].s_next = &semdTable[i + 1];
+	for (i = 0; i < MAXPROC; i++) semdTable[i].s_next = &semdTable[i + 1];
 	semdTable[MAXPROC].s_next = NULL;
 
 	/* semdTable[0] is the dummy header for semdFree */
@@ -185,16 +176,14 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	return output;
 }
 
-/*
- * Search the ASL for a descriptor of this semaphore.
- * If none is found, return NULL; otherwise, remove the first
- * (i.e. head) ProcBlk from the process queue of the found
- * semaphore descriptor and return a pointer to it.
- * If the process queue for this semaphore becomes empty
- * (emptyProcQ(s_procq) is TRUE), remove the semaphore
- * descriptor from the ASL and return it to the semdFree list.
- *
- * Computational Cost := O(n) : n = "max number of semaphors"
+/**
+@brief Search the ASL for a descriptor of this semaphore.
+If none is found, return NULL; otherwise, remove the first
+(i.e. head) ProcBlk from the process queue of the found
+semaphore descriptor and return a pointer to it.
+If the process queue for this semaphore becomes empty
+(emptyProcQ(s_procq) is TRUE), remove the semaphore
+descriptor from the ASL and return it to the semdFree list.
 */
 EXTERN pcb_t *removeBlocked(int *semAdd)
 {
@@ -220,12 +209,12 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 	return output;
 }
 
-/*
- * Remove the ProcBlk pointed to by p from the process queue
- * associated with p’s semaphore (p->p_semAdd) on the ASL.
- * If ProcBlk pointed to by p does not appear in the process
- * queue associated with p’s semaphore, which is an error
- * condition, return NULL; otherwise, return p.
+/**
+@brief Remove the ProcBlk pointed to by p from the process queue
+associated with p’s semaphore (p->p_semAdd) on the ASL.
+If ProcBlk pointed to by p does not appear in the process
+queue associated with p’s semaphore, which is an error
+condition, return NULL; otherwise, return p.
 */
 EXTERN pcb_t *outBlocked(pcb_t *p)
 {
@@ -251,26 +240,18 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	return output;
 }
 
-/*
- * Return a pointer to the ProcBlk that is at the head of the
- * process queue associated with the semaphore semAdd.
- * Return NULL if semAdd is not found on the ASL or if the
- * process queue associated with semAdd is empty.
- *
- * Computational Cost := O(n) : n = "max number of semaphors"
+/**
+@brief Return a pointer to the ProcBlk that is at the head of the
+process queue associated with the semaphore semAdd.
+Return NULL if semAdd is not found on the ASL or if the
+process queue associated with semAdd is empty.
 */
 EXTERN pcb_t *headBlocked(int *semAdd)
 {
-	pcb_t *output;
 	semd_t *sem;
 
 	/* Pre-conditions: semAdd is not NULL */
 	if (!semAdd) return NULL;
 
-	/* [Case 1] semAdd is in ASL */
-	if ((sem = findSemaphore(semAdd)))
-		output = headProcQ(sem->s_next->s_procQ);
-	/* [Case 2] semAdd is not in ASL */
-	else output = NULL;
-	return output;
+	return ((sem = findSemaphore(semAdd)))? headProcQ(sem->s_next->s_procQ) : NULL;
 }

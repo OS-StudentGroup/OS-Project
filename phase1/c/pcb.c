@@ -29,13 +29,14 @@ EXTERN void freePcb(pcb_t *p)
 	insertProcQ(&pcbFree_h, p);
 }
 
-/*
- * Return NULL if the pcbFree list is empty.
- * Otherwise, remove an element from the pcbFree list, provide
- * initial values for ALL of the ProcBlk’s ﬁelds (i.e. NULL and/or 0)
- * and then return a pointer to the removed element.
- * ProcBlk’s get reused, so it is important that no previous value
- * persist in a ProcBlk when it gets reallocated.
+/**
+@brief Return NULL if the pcbFree list is empty.
+Otherwise, remove an element from the pcbFree list, provide
+initial values for ALL of the ProcBlk’s ﬁelds (i.e. NULL and/or 0)
+and then return a pointer to the removed element.
+ProcBlk’s get reused, so it is important that no previous value
+persist in a ProcBlk when it gets reallocated.
+@return A new allocated ProcBlk, or NULL if the pcbFree list is empty.
 */
 EXTERN pcb_t *allocPcb(void)
 {
@@ -48,13 +49,11 @@ EXTERN pcb_t *allocPcb(void)
 		output->p_next = output->p_prnt = output->p_child = output->p_sib = NULL;
 		output->p_semAdd = NULL;
 		output->p_isBlocked = FALSE;
-		output->p_cpu_time =
-			output->p_s.a1 = output->p_s.a2 = output->p_s.a3 = output->p_s.a4 =
-			output->p_s.v1 = output->p_s.v2 = output->p_s.v3 = output->p_s.v4 =
-			output->p_s.v5 = output->p_s.v6 = output->p_s.sl = output->p_s.fp =
-			output->p_s.ip = output->p_s.sp = output->p_s.lr = output->p_s.pc =
-			output->p_s.cpsr = output->p_s.CP15_Control = output->p_s.CP15_EntryHi =
-			output->p_s.CP15_Cause = output->p_s.TOD_Hi = output->p_s.TOD_Low = 0 ;
+		output->p_cpu_time = output->p_s.a1 = output->p_s.a2 = output->p_s.a3 = output->p_s.a4 =
+			output->p_s.v1 = output->p_s.v2 = output->p_s.v3 = output->p_s.v4 = output->p_s.v5 =
+			output->p_s.v6 = output->p_s.sl = output->p_s.fp = output->p_s.ip = output->p_s.sp =
+			output->p_s.lr = output->p_s.pc = output->p_s.cpsr = output->p_s.CP15_Control =
+			output->p_s.CP15_EntryHi = output->p_s.CP15_Cause = output->p_s.TOD_Hi = output->p_s.TOD_Low = 0 ;
 
 		for (i = 0; i < NUM_EXCEPTIONS; i++)
 		{
@@ -66,10 +65,11 @@ EXTERN pcb_t *allocPcb(void)
 	return output;
 }
 
-/*
- * Initialize the pcbFree list to contain all the elements of the
- * static array of MAXPROC ProcBlk’s.
- * This method shall be called only once during data structure initialization.
+/**
+@brief Initialize the pcbFree list to contain all the elements of the
+static array of MAXPROC ProcBlk’s.
+This method shall be called only once during data structure initialization.
+@return Void.
 */
 EXTERN void initPcbs(void)
 {
@@ -81,31 +81,27 @@ EXTERN void initPcbs(void)
 		insertProcQ(&pcbFree_h, &pcbs[i]);
 }
 
-/*
- * This method is used to initialize a variable to be tail pointer to a
- * process queue.
- * Return a pointer to the tail of an empty process queue;
- * i.e. NULL.
+/**
+@brief This method is used to initialize a variable to be tail pointer to a process queue.
+@return A pointer to the tail of an empty process queue; i.e. NULL.
 */
 EXTERN pcb_t *mkEmptyProcQ(void)
 {
 	return NULL;
 }
 
-/*
- * Return TRUE if the queue whose tail is pointed to by tp is empty.
- * Return FALSE otherwise.
+/**
+@brief Return TRUE if the queue whose tail is pointed to by tp is empty. Return FALSE otherwise.
 */
 EXTERN int emptyProcQ(pcb_t *tp)
 {
 	return !tp;
 }
 
-/*
- * Insert the ProcBlk pointed to by p into the process queue whose
- * tail-pointer is pointed to by tp.
- * Note the double indirection through tp to allow for the possible
- * updating of the tail pointer as well.
+/**
+@brief Insert the ProcBlk pointed to by p into the process queue whose tail-pointer
+is pointed to by tp. Note the double indirection through tp to allow for the possible
+updating of the tail pointer as well.
 */
 EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 {
@@ -127,12 +123,12 @@ EXTERN void insertProcQ(pcb_t **tp, pcb_t *p)
 	}
 }
 
-/*
- * Remove the first (i.e. head) element from the process queue whose
- * tail-pointer is pointed to by tp.
- * Return NULL if the process queue was initially empty; otherwise
- * return the pointer to the removed element.
- * Update the process queue’s tail pointer if necessary.
+/**
+@brief Remove the first (i.e. head) element from the process queue whose
+tail-pointer is pointed to by tp.
+Return NULL if the process queue was initially empty; otherwise
+return the pointer to the removed element.
+Update the process queue’s tail pointer if necessary.
 */
 EXTERN pcb_t *removeProcQ(pcb_t **tp)
 {
@@ -146,21 +142,21 @@ EXTERN pcb_t *removeProcQ(pcb_t **tp)
 	/* [Case 1] ProcQ has 1 ProcBlk */
 	if (hasOneProcBlk(*tp))
 		*tp = mkEmptyProcQ();
-	/* [Case 2] ProcQ has >1 ProcBlk */
+	/* [Case 2] ProcQ has more than 1 ProcBlk */
 	else
 		(*tp)->p_next = (*tp)->p_next->p_next;
 
 	return output;
 }
 
-/*
- * Remove the ProcBlk pointed to by p from the process queue
- * whose tail-pointer is pointed to by tp.
- * Update the process queue’s tail pointer if necessary.
- * If the desired entry is not in the indicated queue
- * (an error condition), return NULL; otherwise, return p.
- * Note that p can point to any element of the process queue.
- */
+/**
+@brief Remove the ProcBlk pointed to by p from the process queue
+whose tail-pointer is pointed to by tp.
+Update the process queue’s tail pointer if necessary.
+If the desired entry is not in the indicated queue (an error condition),
+return NULL; otherwise, return p.
+Note that p can point to any element of the process queue.
+*/
 EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 {
 	pcb_t *output, *it;
@@ -178,62 +174,53 @@ EXTERN pcb_t *outProcQ(pcb_t **tp, pcb_t *p)
 			*tp = mkEmptyProcQ();
 		}
 		/* [Case 1.2] p is not in ProcQ */
-		else
-			output = NULL;
+		else output = NULL;
 	}
-	/* [Case 2] ProcQ has >1 ProcBlk */
+	/* [Case 2] ProcQ has more than 1 ProcBlk */
 	else
 	{
-		/* Iterate PCB until:
-			the end is reached OR
-			the ProcBlk is found */
-		for (it = (*tp)->p_next;
-			 it != *tp && it->p_next != p;
-			 it = it->p_next);
+		/* Iterate PCB until: the end is reached OR the ProcBlk is found */
+		for (it = (*tp)->p_next; it != *tp && it->p_next != p; it = it->p_next);
 
 		/* [Case 2.1] p is in ProcQ */
 		if (it->p_next == p)
 		{
 			output = p;
 
-			/* [SubCase] p is in the tail */
-			if (it->p_next == *tp)
-				/* Update the tail-pointer */
-				*tp = it;
+			/* If p is in the tail, update the tail-pointer */
+			if (it->p_next == *tp) *tp = it;
 
 			it->p_next = it->p_next->p_next;
 		}
 		/* [Case 2.2] p is not in ProcQ */
-		else
-			output = NULL;
+		else output = NULL;
 	}
 
 	return output;
 }
 
-/*
- * Return a pointer to the first ProcBlk from the process queue whose
- * tail is pointed to by tp.
- * Do not remove this ProcBlk from the process queue.
- * Return NULL if the process queue is empty.
+/**
+@brief Return a pointer to the first ProcBlk from the process queue whose
+tail is pointed to by tp.
+Do not remove this ProcBlk from the process queue.
+Return NULL if the process queue is empty.
 */
 EXTERN pcb_t *headProcQ(pcb_t *tp)
 {
 	return emptyProcQ(tp)? NULL : tp->p_next;
 }
 
-/*
- * Return TRUE if the ProcBlk pointed to by p has no children.
- * Return FALSE otherwise.
+/**
+@brief Return TRUE if the ProcBlk pointed to by p has no children.
+Return FALSE otherwise.
 */
 EXTERN int emptyChild(pcb_t *p)
 {
 	return (!p)? TRUE : !p->p_child;
 }
 
-/*
- * Make the ProcBlk pointed to by p a child of the ProcBlk
- * pointed to by prnt.
+/**
+@brief Make the ProcBlk pointed to by p a child of the ProcBlk pointed to by prnt.
 */
 EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 {
@@ -245,11 +232,10 @@ EXTERN void insertChild(pcb_t *prnt, pcb_t *p)
 	prnt->p_child = p;
 }
 
-/*
- * Make the first child of the ProcBlk pointed to by p no
- * longer a child of p.
- * Return NULL if initially there were no children of p.
- * Otherwise, return a pointer to this removed first child ProcBlk.
+/**
+@brief Make the first child of the ProcBlk pointed to by p no longer a child of p.
+Return NULL if initially there were no children of p.
+Otherwise, return a pointer to this removed first child ProcBlk.
 */
 EXTERN pcb_t *removeChild(pcb_t *p)
 {
@@ -264,13 +250,11 @@ EXTERN pcb_t *removeChild(pcb_t *p)
 	return output;
 }
 
-/*
- * Make the ProcBlk pointed to by p no longer the child
- * of its parent.
- * If the ProcBlk pointed to by p has no parent, return NULL;
- * otherwise, return p.
- * Note that the element pointed to by p need not be the first
- * child of its parent.
+/**
+@brief Make the ProcBlk pointed to by p no longer the child of its parent.
+If the ProcBlk pointed to by p has no parent, return NULL; otherwise, return p.
+Note that the element pointed to by p need not be the first
+child of its parent.
 */
 EXTERN pcb_t *outChild(pcb_t *p)
 {
@@ -280,8 +264,7 @@ EXTERN pcb_t *outChild(pcb_t *p)
 	if (!p || !p->p_prnt) return NULL;
 
 	/* [Case 1] p is the first child */
-	if (p->p_prnt->p_child == p)
-		p->p_prnt->p_child = p->p_sib;
+	if (p->p_prnt->p_child == p) p->p_prnt->p_child = p->p_sib;
 	/* [Case 2] p is not the first child */
 	else
 	{

@@ -50,7 +50,7 @@ take one of the following actions:
 */
 HIDDEN void checkSYS5(int exceptionType, state_t *exceptionOldArea)
 {
-	/* If SYS5 has not been yet executed, then the current process shall terminate */
+	/* [Case 1] SYS5 has not been issued */
 	if (CurrentProcess->exceptionState[exceptionType] == 0)
 	{
 		/* Terminate the current process (SYS2) */
@@ -59,9 +59,10 @@ HIDDEN void checkSYS5(int exceptionType, state_t *exceptionOldArea)
 		/* Call the scheduler */
 		scheduler();
 	}
+	/* [Case 2] SYS5 has been issued */
 	else
 	{
-		/* Move current process exception state area into the processor exception state area */
+		/* Move current process Exception State Area into the processor Exception State Area */
 		saveCurrentState(exceptionOldArea, CurrentProcess->p_stateOldArea[exceptionType]);
 
 		/* Load the processor state in order to start execution */
@@ -90,7 +91,7 @@ HIDDEN void syscallUserMode()
 	}
 	/* [Case 2] A non privileged system call has been raised */
 	else
-		/* Distinguish whether SYS5 has been invoked before or not */
+		/* Distinguish whether SYS5 has been invoked or not */
 		checkSYS5(SYSBK_EXCEPTION, SYSBP_Old);
 }
 
@@ -132,7 +133,7 @@ HIDDEN void syscallKernelMode()
 			break;
 
 		default:
-			/* Distinguish whether SYS5 has been invoked before or not */
+			/* Distinguish whether SYS5 has been invoked or not */
 			checkSYS5(SYSBK_EXCEPTION, SYSBP_Old);
 	}
 
@@ -161,7 +162,7 @@ EXTERN void sysBpHandler()
 
 		/* [Case 2] The exception is a breakpoint */
 		case EXC_BREAKPOINT:
-			/* Distinguish whether SYS5 has been invoked before or not */
+			/* Distinguish whether SYS5 has been invoked or not */
 			checkSYS5(SYSBK_EXCEPTION, SYSBP_Old);
 			break;
 
@@ -178,7 +179,7 @@ EXTERN void pgmTrapHandler()
 	/* If a process is running, load Program Trap Old Area into the Current Process state */
 	(CurrentProcess)? saveCurrentState(PGMTRAP_Old, &(CurrentProcess->p_s)) : PANIC(); /* Anomaly */
 
-	/* Distinguish whether SYS5 has been invoked before or not */
+	/* Distinguish whether SYS5 has been invoked or not */
 	checkSYS5(PGMTRAP_EXCEPTION, PGMTRAP_Old);
 }
 
@@ -191,14 +192,14 @@ EXTERN void tlbHandler()
 	/* If a process is running, load Program Trap Old Area into the Current Process state */
 	(CurrentProcess)? saveCurrentState(TLB_Old, &(CurrentProcess->p_s)) : PANIC(); /* Anomaly */
 
-	/* Distinguish whether SYS5 has been invoked before or not */
+	/* Distinguish whether SYS5 has been invoked or not */
 	checkSYS5(TLB_EXCEPTION, TLB_Old);
 }
 
 /**
 @brief (SYS1) Create a new process.
 @param state Processor state from which create a new process.
-@return -1 in case of failure; Process Count in case of success.
+@return -1 in case of failure; 0 in case of success.
 */
 EXTERN int createProcess(state_t *state)
 {
@@ -215,10 +216,10 @@ EXTERN int createProcess(state_t *state)
 	insertChild(CurrentProcess, process);
 	insertProcQ(&ReadyQueue, process);
 
-	return ProcessCount;
+	return 0; /* Success */
 }
 
-/*
+/**
 @brief Recursively terminate a process and its progeny.
 @param process Pointer to the process control block.
 @return Void.
@@ -288,6 +289,7 @@ EXTERN void verhogen(int *semaddr)
 	{
 		/* Insert process into the ready queue */
 		insertProcQ(&ReadyQueue, process);
+		SoftBlockCount--;
 		process->p_isBlocked = FALSE;
 	}
 }
@@ -305,29 +307,9 @@ EXTERN void passeren(int *semaddr)
 	{
 		/* Block process into the semaphore queue */
 		if (insertBlocked(semaddr, CurrentProcess)) PANIC(); /* Anomaly */
-
-		CurrentProcess->p_isBlocked = TRUE;
-		CurrentProcess = NULL;
-	}
-}
-
-/**
-@brief Performs a P on a device semaphore and increments the Soft-Block count, i.e. increase
-by one the number of processes in the system currently blocked and waiting for an interrupt.
-@param semaddr Semaphore's address.
-@return Void.
-*/
-EXTERN void passerenIO(int *semaddr)
-{
-	/* Perform a P on the semaphore */
-	if (--(*semaddr) < 0)
-	{
-		/* Block current process in the semaphore queue */
-		if (insertBlocked(semaddr, CurrentProcess)) PANIC(); /* Anomaly */
-
-		CurrentProcess->p_isBlocked = TRUE;
-		CurrentProcess = NULL;
 		SoftBlockCount++;
+		CurrentProcess->p_isBlocked = TRUE;
+		CurrentProcess = NULL;
 
 		/* Call the scheduler */
 		scheduler();
@@ -376,7 +358,7 @@ EXTERN U32 getCPUTime()
 */
 EXTERN void waitClock()
 {
-	passerenIO(&PseudoClock);
+	passeren(&PseudoClock);
 }
 
 /*
@@ -392,13 +374,12 @@ EXTERN unsigned int waitIO(int interruptLine, int deviceNumber, int reading)
 
 	switch (interruptLine)
 	{
-		case INT_DISK:		passerenIO(&Semaphores.disk[deviceNumber]);		break;
-		case INT_TAPE:		passerenIO(&Semaphores.tape[deviceNumber]);		break;
-		case INT_UNUSED:	passerenIO(&Semaphores.network[deviceNumber]);	break;
-		case INT_PRINTER:	passerenIO(&Semaphores.printer[deviceNumber]);	break;
-		case INT_TERMINAL:	passerenIO((reading)?
-								&Semaphores.terminalR[deviceNumber] :
-								&Semaphores.terminalT[deviceNumber]);		break;
+		case INT_DISK:		passeren(&Semaphores.disk[deviceNumber]);		break;
+		case INT_TAPE:		passeren(&Semaphores.tape[deviceNumber]);		break;
+		case INT_UNUSED:	passeren(&Semaphores.network[deviceNumber]);	break;
+		case INT_PRINTER:	passeren(&Semaphores.printer[deviceNumber]);	break;
+		case INT_TERMINAL:	passeren((reading)? &Semaphores.terminalR[deviceNumber] :
+												&Semaphores.terminalT[deviceNumber]); break;
 		default: PANIC(); /* Anomaly */
 	}
 

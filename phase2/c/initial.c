@@ -24,11 +24,11 @@ int PseudoClock;						/**< Pseudo-clock semaphore */
 @param handler Physical address of the handler.
 @return Void.
 */
-HIDDEN void populateArea(memaddr oldArea, memaddr handler)
+HIDDEN void populateNewArea(memaddr oldArea, memaddr handler)
 {
 	state_t *newArea;
 
-	/* The new area points to the old area */
+	/* Make the New Area pointing to the Old Area */
 	newArea = (state_t *) oldArea;
 
 	/* Save the current processor state */
@@ -36,6 +36,8 @@ HIDDEN void populateArea(memaddr oldArea, memaddr handler)
 
 	/* Assign to Program Counter the Exception Handler address */
 	newArea->pc = handler;
+
+	/* Initialize the Stack Pointer */
 	newArea->sp = RAM_TOP;
 
 	/* Disable Virtual Memory */
@@ -53,11 +55,11 @@ int main()
 	pcb_t *init;
 	int i;
 
-	/* Populate the processor state areas into the ROM Reserved Frame */
-	populateArea(SYSBK_NEWAREA,		(memaddr) sysBpHandler);	/* SYS/BP Exception Handling */
-	populateArea(PGMTRAP_NEWAREA,	(memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
-	populateArea(INT_NEWAREA,		(memaddr) intHandler);		/* Interrupt Exception Handling */
-	populateArea(TLB_NEWAREA,		(memaddr) tlbHandler);		/* TLB Exception Handling */
+	/* Populate the 4 processor state areas into the ROM Reserved Frame */
+	populateNewArea(SYSBK_NEWAREA,		(memaddr) sysBpHandler);	/* SYS/BP Exception Handling */
+	populateNewArea(PGMTRAP_NEWAREA,	(memaddr) pgmTrapHandler);	/* PgmTrap Exception Handling */
+	populateNewArea(INT_NEWAREA,		(memaddr) intHandler);		/* Interrupt Exception Handling */
+	populateNewArea(TLB_NEWAREA,		(memaddr) tlbHandler);		/* TLB Exception Handling */
 
 	/* Initialize data structures */
 	initPcbs();
@@ -88,7 +90,7 @@ int main()
 	/* Initialize Stack Pointer */
 	init->p_s.sp = RAM_TOP - BUS_REG_RAM_SIZE;
 
-	/* Initialize Program Counter with the test process */
+	/* Initialize Program Counter with the Test process */
 	init->p_s.pc = (memaddr) test;
 
 	/* Insert init in ProcQ */

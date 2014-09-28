@@ -1,6 +1,6 @@
 /**
 @file scheduler.c
-@note Process scheduler and deadlock detection.
+@note Process scheduler with deadlock detection.
 */
 
 #include "../e/dependencies.e"
@@ -8,7 +8,7 @@
 /**
 @brief The function updates the CPU time of the running process and re-start the Timer Tick.
 In case there is not a running process, the function performs deadlock detection, initializes
-the CPU time and starts the first process in the Ready Queue.
+the CPU time and activate the first process extracted from the Ready Queue.
 @return Void.
 */
 void scheduler()

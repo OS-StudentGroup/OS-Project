@@ -25,7 +25,7 @@ HIDDEN int getDevice(int bitmap)
 	return DEV_CHECK_LINE_7;
 }
 
-/*
+/**
 @brief Performs a V on the given device semaphore.
 @param semaddr Address of the semaphore.
 @param status Device status.
@@ -43,13 +43,13 @@ HIDDEN void intVerhogen(int *semaddr, int status)
 	{
 		/* Add the process into the Ready Queue */
 		insertProcQ(&ReadyQueue, process);
-
 		SoftBlockCount--;
+		process->p_isBlocked = FALSE;
 		process->p_s.a1 = status;
 	}
 }
 
-/*
+/**
 @brief Acknowledge a pending interrupt on the Timer Click.
 @return Void.
 */
@@ -61,7 +61,7 @@ HIDDEN void intTimer()
 	TimerTick += getTODLO() - StartTimerTick;
 	StartTimerTick = getTODLO();
 
-	/* [Case 1] The Time Slice for the current process did not ran out */
+	/* [Case 1] The Time Slice for the current process did not run out */
 	if (TimerTick >= SCHED_PSEUDO_CLOCK)
 	{
 		/* [Case 1.1] There is at least one blocked process */
@@ -75,7 +75,6 @@ HIDDEN void intTimer()
 				{
 					/* Add the process into the Ready Queue */
 					insertProcQ(&ReadyQueue, process);
-
 					SoftBlockCount--;
 				}
 			}
@@ -83,17 +82,16 @@ HIDDEN void intTimer()
 		/* [Case 1.2] There is at most one blocked process */
 		else
 		{
-			/* [Case 1.2.1] 0 blocked processes */
-			if (!(process = removeBlocked(&PseudoClock))) PseudoClock--;
-			/* [Case 1.2.2] 1 blocked process */
-			else
+			/* [Case 1.2.1] 1 blocked process */
+			if ((process = removeBlocked(&PseudoClock)))
 			{
 				/* Add the process into the Ready Queue */
 				insertProcQ(&ReadyQueue, process);
-
 				SoftBlockCount--;
 				PseudoClock++;
 			}
+			/* [Case 1.2.2] 0 blocked processes */
+			else PseudoClock--;
 		}
 
 		/* Reset the timer tick used to compute the Pseudo-Clock tick */
@@ -113,11 +111,11 @@ HIDDEN void intTimer()
 		TimerTick += getTODLO() - StartTimerTick;
 		StartTimerTick = getTODLO();
 	}
-	/* [Case 3] There is not a running process */
+	/* [Case 3] There is no running process */
 	else setTIMER(SCHED_PSEUDO_CLOCK - TimerTick);
 }
 
-/*
+/**
 @brief Acknowledge a pending interrupt through setting the command code in the device register.
 @return Void.
 */
@@ -148,7 +146,7 @@ HIDDEN void intDevice(int cause)
 	deviceRegister->command = DEV_C_ACK;
 }
 
-/*
+/**
 @brief Acknowledge a pending interrupt on the terminal, distinguishing between receiving and sending ones.
 @return Void.
 */
@@ -172,7 +170,7 @@ HIDDEN void intTerminal()
 		/* Perform a V on the device semaphore */
 		intVerhogen(&Semaphores.terminalR[deviceNumber], deviceRegister->recv_status);
 
-		/* Identify the pending interrupt */
+		/* Acknowledge the outstanding interrupt */
 		deviceRegister->recv_command = DEV_C_ACK;
 	}
 	/* [Case 2] Receiving a character */
@@ -181,13 +179,13 @@ HIDDEN void intTerminal()
 		/* Perform a V on the device semaphore */
 		intVerhogen(&Semaphores.terminalT[deviceNumber], deviceRegister->transm_status);
 
-		/* Identify the pending interrupt */
+		/* Acknowledge the outstanding interrupt */
 		deviceRegister->transm_command = DEV_C_ACK;
 	}
 }
 
 
-/*
+/**
 @brief The function identifies the pending interrupt and performs a V on the related Semaphores.
 @return Void.
 */
