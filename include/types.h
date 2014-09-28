@@ -24,7 +24,8 @@ typedef struct pcb_t
 	U32 exceptionState[NUM_EXCEPTIONS];			/**< Exception State Vector */
 	state_t *p_stateOldArea[NUM_EXCEPTIONS];	/**< Old processor states, one for each exception type */
 	state_t *p_stateNewArea[NUM_EXCEPTIONS];	/**< New processor states, one for each exception type */
-	U32 p_isBlocked;							/**< Semaphore Flag */
+	U32 p_isBlocked;							/**< Semaphore Flag: TRUE, if the process is blocked on a device semaphore;
+	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 FALSE, otherwise */
 } pcb_t;
 
 /* Semaphore Descriptor type */

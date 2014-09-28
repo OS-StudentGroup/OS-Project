@@ -1,17 +1,17 @@
 /*
 @file exceptions.c
-@note SYS/Bp Exception Handling
+@note System Call/Breakpoint Exception Handling
 */
 
 #include "../e/dependencies.e"
 
-HIDDEN state_t *SYSBP_Old = 	(state_t *) SYSBK_OLDAREA;		/* System Call/Break Point Old Area */
+HIDDEN state_t *SYSBP_Old = 	(state_t *) SYSBK_OLDAREA;		/* System Call/Breakpoint Old Area */
 HIDDEN state_t *TLB_Old = 		(state_t *) TLB_OLDAREA;		/* TLB Old Area */
 HIDDEN state_t *PGMTRAP_Old = 	(state_t *) PGMTRAP_OLDAREA;	/* Program Trap Old Area */
 
 /**
 @brief Save current state in a new state.
-@param currentState Current state.
+@param oldState Current state.
 @param newState New state.
 @return Void.
 */
@@ -42,8 +42,7 @@ EXTERN void saveCurrentState(state_t *oldState, state_t *newState)
 }
 
 /**
-@brief For Breakpoint and System Call higher than 9 the exception handler will
-take one of the following actions:
+@brief The function will undertake one of the following actions:
 (1) If the offending process has NOT issued a SYS5, then invoke SYS2;
 (2) If the offending process has issued a SYS5, then pass up the exception.
 @return Void.
@@ -70,10 +69,9 @@ HIDDEN void checkSYS5(int exceptionType, state_t *exceptionOldArea)
 	}
 }
 
-/*
-@brief The eight nucleus services are considered privileged services and are only
-available to processes executing in kernel-mode. Any attempt to request one of
-these services while in user-mode should trigger a PgmTrap exception response.
+/**
+@brief This function handles a system call request coming from a process running in User Mode.
+@return Void.
 */
 HIDDEN void syscallUserMode()
 {
@@ -95,6 +93,10 @@ HIDDEN void syscallUserMode()
 		checkSYS5(SYSBK_EXCEPTION, SYSBP_Old);
 }
 
+/**
+@brief This function handles a system call request coming from a process running in Kernel Mode.
+@return Void.
+*/
 HIDDEN void syscallKernelMode()
 {
 	/* Identify and handle the system call */
@@ -197,7 +199,7 @@ EXTERN void tlbHandler()
 }
 
 /**
-@brief (SYS1) Create a new process.
+@brief (SYS1) Creates a new process.
 @param state Processor state from which create a new process.
 @return -1 in case of failure; 0 in case of success.
 */
@@ -220,8 +222,8 @@ EXTERN int createProcess(state_t *state)
 }
 
 /**
-@brief Recursively terminate a process and its progeny.
-@param process Pointer to the process control block.
+@brief Recursively terminates a process and its progeny.
+@param process Pointer to the Process Control Block.
 @return Void.
 */
 HIDDEN void _terminateProcess(pcb_t *process)
@@ -230,20 +232,17 @@ HIDDEN void _terminateProcess(pcb_t *process)
 	while (!emptyChild(process)) _terminateProcess(removeChild(process));
 
 	/* If the process is blocked on a semaphore */
-	if (process->p_isBlocked)
+	if (process->p_semAdd)
 	{
-		if (!process->p_semAdd) PANIC(); /* Anomaly */
+		/* If it is the Pseudo-Clock semaphore or a non-device semaphore, and its value is negative */
+		if ((process->p_semAdd == &PseudoClock || !process->p_isBlocked) && (*process->p_semAdd) < 0)
+			(*process->p_semAdd)++; /* Update the value */
 
-		/* [Case 1] The process is blocked on the Pseudo-Clock semaphore */
-		if (process->p_semAdd == &PseudoClock) PseudoClock++;
-		/* [Case 2] The process is blocked on a device semaphore */
-		else
-		{
-			(*process->p_semAdd)++;
+		/* Extract the process from the semaphore */
+		if (!outBlocked(process)) PANIC(); /* Anomaly */
 
-			/* Extract the process from the semaphore */
-			if (!outBlocked(process)) PANIC(); /* Anomaly */
-		}
+		/* In case of a device semaphore, update the Soft Block Count */
+		if (process->p_isBlocked) SoftBlockCount--;
 	}
 
 	/* Decrease the number of active processes */
@@ -254,8 +253,8 @@ HIDDEN void _terminateProcess(pcb_t *process)
 }
 
 /**
-@brief (SYS2) Terminate a process and all its progeny. In case a process in blocked on a semaphore, performs a V on it.
-@return 0 in case of success; -1 in case of error.
+@brief (SYS2) Terminates a process and all its progeny.
+@return Void.
 */
 EXTERN void terminateProcess()
 {
@@ -272,8 +271,8 @@ EXTERN void terminateProcess()
 	CurrentProcess = NULL;
 }
 
-/*
-@brief Verhogen (V) (SYS3). Perform a V operation on a semaphore.
+/**
+@brief Verhogen (V) (SYS3). Performs a V operation on a semaphore.
 @param semaddr Semaphore address.
 @return Void.
 */
@@ -289,18 +288,37 @@ EXTERN void verhogen(int *semaddr)
 	{
 		/* Insert process into the ready queue */
 		insertProcQ(&ReadyQueue, process);
-		SoftBlockCount--;
 		process->p_isBlocked = FALSE;
 	}
 }
 
 
-/*
-@brief Passeren (P) (SYS4). Perform a P operation on a semaphore.
+/**
+@brief Passeren (P) (SYS4). Performs a P operation on a semaphore.
 @param semaddr Semaphore address.
 @return Void.
 */
 EXTERN void passeren(int *semaddr)
+{
+	/* If semaphore value becomes negative */
+	if (--(*semaddr) < 0)
+	{
+		/* Block process into the semaphore queue */
+		if (insertBlocked(semaddr, CurrentProcess)) PANIC(); /* Anomaly */
+		CurrentProcess = NULL;
+
+		/* Call the scheduler */
+		scheduler();
+	}
+}
+
+/**
+@brief Performs a P operation on a device semaphore.
+Thus, increments the Soft Block Count and set the p_isBlocked flag as TRUE.
+@param semaddr Semaphore address.
+@return Void.
+*/
+HIDDEN void devPasseren(int *semaddr)
 {
 	/* If semaphore value becomes negative */
 	if (--(*semaddr) < 0)
@@ -316,7 +334,7 @@ EXTERN void passeren(int *semaddr)
 	}
 }
 
-/*
+/**
 @brief (SYS5) Specify Exception State Vector.
 @param type Type of exception.
 @param stateOld The address into which the old processor state is to be stored when an exception
@@ -327,10 +345,8 @@ exception occurs while running this process.
 */
 EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 {
-	/* [Case 1] If the exception type is not recognized or SYS5 has been called more than once */
-	if (type < 0 || type > 2 || ++CurrentProcess->exceptionState[type] > 1)
-		/* Terminate the process (SYS2) */
-		terminateProcess();
+	/* [Case 1] If the exception type is not recognized or SYS5 has been called more than once, terminate the process */
+	if (type < 0 || type > 2 || ++CurrentProcess->exceptionState[type] > 1) terminateProcess();
 	/* [Case 2] SYS5 has been called for the first time */
 	else
 	{
@@ -339,7 +355,7 @@ EXTERN void specTrapVec(int type, state_t *stateOld, state_t *stateNew)
 	}
 }
 
-/*
+/**
 @brief (SYS6) Retrieve the CPU time of the current process.
 @return CPU time of the current process.
 */
@@ -352,16 +368,16 @@ EXTERN U32 getCPUTime()
 	return CurrentProcess->p_cpu_time;
 }
 
-/*
+/**
 @brief (SYS7) Performs a P on the pseudo-clock semaphore.
 @return Void.
 */
 EXTERN void waitClock()
 {
-	passeren(&PseudoClock);
+	devPasseren(&PseudoClock);
 }
 
-/*
+/**
 @brief (SYS8) Perform a P operation on a device semaphore.
 @param interruptLine Interrupt line.
 @param deviceNumber Device number.
@@ -374,12 +390,12 @@ EXTERN unsigned int waitIO(int interruptLine, int deviceNumber, int reading)
 
 	switch (interruptLine)
 	{
-		case INT_DISK:		passeren(&Semaphores.disk[deviceNumber]);		break;
-		case INT_TAPE:		passeren(&Semaphores.tape[deviceNumber]);		break;
-		case INT_UNUSED:	passeren(&Semaphores.network[deviceNumber]);	break;
-		case INT_PRINTER:	passeren(&Semaphores.printer[deviceNumber]);	break;
-		case INT_TERMINAL:	passeren((reading)? &Semaphores.terminalR[deviceNumber] :
-												&Semaphores.terminalT[deviceNumber]); break;
+		case INT_DISK:		devPasseren(&Semaphores.disk[deviceNumber]);		break;
+		case INT_TAPE:		devPasseren(&Semaphores.tape[deviceNumber]);		break;
+		case INT_UNUSED:	devPasseren(&Semaphores.network[deviceNumber]);		break;
+		case INT_PRINTER:	devPasseren(&Semaphores.printer[deviceNumber]);		break;
+		case INT_TERMINAL:	devPasseren((reading)? 	&Semaphores.terminalR[deviceNumber] :
+													&Semaphores.terminalT[deviceNumber]); break;
 		default: PANIC(); /* Anomaly */
 	}
 

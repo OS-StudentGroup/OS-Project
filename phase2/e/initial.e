@@ -14,4 +14,4 @@ EXTERN U32 StartTimerTick;
 EXTERN pcb_t *ReadyQueue;
 EXTERN pcb_t *CurrentProcess;
 EXTERN DeviceSemaphores Semaphores;
-EXTERN int PseudoClock;
+EXTERN S32 PseudoClock;

@@ -151,7 +151,6 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 	if ((sem = findSemaphore(semAdd)))
 	{
 		p->p_semAdd = semAdd;
-		p->p_isBlocked = TRUE;
 	 	insertProcQ(&sem->s_next->s_procQ, p);
 
 	 	output = FALSE;
@@ -163,7 +162,6 @@ EXTERN int insertBlocked(int *semAdd, pcb_t *p)
 		if ((sem = removeFromSemdFree()))
 		{
 			sem->s_semdAdd = p->p_semAdd = semAdd;
-			p->p_isBlocked = TRUE;
 			insertProcQ(&sem->s_procQ, p);
 			addToASL(sem);
 
@@ -198,7 +196,6 @@ EXTERN pcb_t *removeBlocked(int *semAdd)
 	{
 		output = removeProcQ(&sem->s_next->s_procQ);
 		output->p_semAdd = NULL;
-		output->p_isBlocked = FALSE;
 
 		/* If ProcQ is now empty, deallocate the semaphore */
 		if (emptyProcQ(sem->s_next->s_procQ)) freeSemaphore(sem);
@@ -229,7 +226,6 @@ EXTERN pcb_t *outBlocked(pcb_t *p)
 	{
 		output = outProcQ(&sem->s_next->s_procQ, p);
 		output->p_semAdd = NULL;
-		output->p_isBlocked = FALSE;
 
 		/* If ProcQ is now empty, deallocate the semaphore */
 		if (emptyProcQ(sem->s_next->s_procQ)) freeSemaphore(sem);

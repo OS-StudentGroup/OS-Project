@@ -1,3 +1,8 @@
+/*
+@file dependencies.e
+@brief External definitions for initial.c, scheduler.c, exceptions.c, interrupts.c
+*/
+
 #include "../../include/uARMconst.h"
 #include "../../include/uARMtypes.h"
 #include "../../include/libuarm.h"

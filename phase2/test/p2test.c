@@ -32,11 +32,11 @@
  * 		Modified by Marco Melletti 2014
  */
 
-#include </usr/include/uarm/uARMconst.h>
-#include </usr/include/uarm/uARMtypes.h>
+#include "../../include/uARMconst.h"
+#include "../../include/uARMtypes.h"
 #include "../../include/base.h"
 #include "../../include/const.h"
-#include </usr/include/uarm/libuarm.h>
+#include "../../include/libuarm.h"
 
 typedef unsigned int devregtr;
 

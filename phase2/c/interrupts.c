@@ -27,6 +27,7 @@ HIDDEN int getDevice(int bitmap)
 
 /**
 @brief Performs a V on the given device semaphore.
+Thus, decrements the Soft Block Count and set the p_isBlocked flag as FALSE.
 @param semaddr Address of the semaphore.
 @param status Device status.
 @return Void.

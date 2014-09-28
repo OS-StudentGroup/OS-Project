@@ -1,7 +1,6 @@
-/* Externals declaration file for the PCB
- * 
- * This will insure that the ASL can only use the externally 
- * visible functions from PCB for maintaining its process queues.
+/*
+@file asl.e
+@brief External definitions for pcb.c
 */
 #include "../h/pcb.h"
 

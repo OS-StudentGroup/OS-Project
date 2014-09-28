@@ -6,10 +6,10 @@
 #define CONST_H
 
 /* Max number of overall concurrent processes */
-#define MAXPROC 	20
+#define MAXPROC 20
 
 /* Number of User Mode processes (not including master process and system daemons) */
-#define UPROCMAX 	3
+#define UPROCMAX 3
 
 /* Number of exception types */
 #define NUM_EXCEPTIONS 3
@@ -18,9 +18,6 @@
 #define WORD_SIZE 4
 
 /* SYS5 mnemonic constant */
-/*#define SPECPGMT 0
-#define SPECTLB 1
-#define SPECSYSBP 2*/
 #define SPECTRAPVEC 5
 
 /* General purpose constants */
@@ -45,7 +42,8 @@
 #define DEV_CHECK_ADDRESS_6 64
 #define DEV_CHECK_ADDRESS_7 128
 
-#define DEV_PER_INT 8 /* Maximum number of devices per interrupt line */
+/* Maximum number of devices per interrupt line */
+#define DEV_PER_INT 8
 
 /* Device Check Line */
 #define DEV_CHECK_LINE_0 0
